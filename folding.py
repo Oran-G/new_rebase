@@ -606,6 +606,7 @@ def main(cfg: DictConfig) -> None:
     cfg.model.gpu = gpu
     
     wandb.init(settings=wandb.Settings(start_method='thread', code_dir="."))
+    wandb.save(os.path.abspath(__file__))
     wandb_logger = WandbLogger(project="Focus",save_dir=cfg.io.wandb_dir)
     wandb_logger.watch(model)
     checkpoint_callback = ModelCheckpoint(monitor="val_loss_epoch", filename=f'{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True,save_top_k=5) 
