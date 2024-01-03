@@ -32,8 +32,8 @@ def main(cfg: DictConfig) -> None:
     print('brew install mmseqs2')
     os.system(f'mmseqs createdb {cfg.io.fasta} DB')
     print(f'mmseqs createdb {cfg.io.fasta} DB')
-    os.system('mmseqs cluster DB DB_clu tmp --min-seq-id 0.3')
-    print('mmseqs cluster DB DB_clu tmp --min-seq-id 0.3')
+    os.system(f'mmseqs cluster DB DB_clu {cfg.io.tmp} --min-seq-id 0.3')
+    print(f'mmseqs cluster DB DB_clu {cfg.io.tmp} --min-seq-id 0.3')
     os.system(f'mmseqs createtsv DB DB DB_clu data.tsv')
     print(f'mmseqs createtsv DB DB DB_clu data.tsv')
     

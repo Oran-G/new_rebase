@@ -327,17 +327,8 @@ class RebaseT5(pl.LightningModule):
         else:
             output = self.model(input_ids=batch['seq'], attention_mask=mask, labels=batch['bind'])
         
-        
-        # if True:
-        #     print('output:', output['logits'].argmax(-1)[0], 'label:', batch['bind'][0])
-        #     print(self.model.state_dict()['lm_head.weight'])
-        # bind_accuracy = batch['bind'].detach()
-        # bind_accuracy[label_mask] = self.dictionary.pad()
-        # self.log('val_acc', self.accuracy(output['logits'].argmax(-1), bind_accuracy), on_step=True, on_epoch=True, prog_bar=False, logger=True)
-        # import pdb; pdb.set_trace()
         self.log('val_loss', float(output.loss), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         self.log('val_acc',float(accuracy(output['logits'].argmax(-1), batch['bind'], (batch['bind'] != self.dictionary.pad()).int())), on_step=True, on_epoch=True, prog_bar=False, logger=True)
-        # self.log('train_perplex',float(self.perplexity(output['logits'], batch['bind'])), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         return {
             'loss': output.loss,
             'batch_size': batch['seq'].size(0)
@@ -351,7 +342,6 @@ class RebaseT5(pl.LightningModule):
             apply_eos=True,
             apply_bos=False,
         )
-        # import pdb; pdb.set_trace()
 
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=4, collate_fn=dataset.collater)
 
@@ -387,17 +377,6 @@ class RebaseT5(pl.LightningModule):
                     num_warmup_steps=1000,
                 )
             }
-            # return {
-            #     "optimizer": opt,
-            #     "lr_scheduler": {
-            #         "scheduler": ReduceLROnPlateau(opt, patience=self.hparams.model.lr_patience, verbose=True),
-            #         "monitor": "train_loss_step",
-            #         'interval': 'step',
-            #         "frequency": 1
-            #         # If "monitor" references validation metrics, then "frequency" should be set to a
-            #         # multiple of "trainer.check_val_every_n_epoch".
-            #     },
-            # }
         else:
             return opt
 
@@ -408,7 +387,6 @@ class RebaseT5(pl.LightningModule):
             batch['bind'][label_mask] = -100
             
 
-            # import pdb; pdb.set_trace()
             # 1 for tokens that are not masked; 0 for tokens that are masked
             mask = (batch['seq'] != self.dictionary.pad()).int()
             if self.hparams.esm.esm != False:
@@ -459,6 +437,7 @@ def main(cfg: DictConfig) -> None:
 
     wandb_logger = WandbLogger(project="Focus",save_dir=cfg.io.wandb_dir)
     wandb_logger.experiment.config.update(dict(cfg.model))
+    wandb.save(os.path.abspath(__file__))
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", filename=f'{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True) 
     acc_callback = ModelCheckpoint(monitor="val_acc", filename=f'acc-{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True) 
     lr_monitor = LearningRateMonitor(logging_interval='step')
@@ -495,8 +474,7 @@ def main(cfg: DictConfig) -> None:
     print(one)
     pred = pd.DataFrame(one)
     print(pred)
-    pred.to_csv('/scratch/og2114/rebase/focus/esm34_largest.csv')
-#     print(checkpoint_callback.best_model_path)
-    # trainer.save_checkpoint(f"{cfg.model.name}.ckpt")
+    pred.to_csv(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/final.csv")
+    
 if __name__ == '__main__':
     main()

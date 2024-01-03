@@ -24,6 +24,6 @@ print((pd.DataFrame(l, columns=['plddts'])))
 print(type(list(zip(l))))
 sns.kdeplot(pd.Series(l))
 # plt.hist(l, alpha=0.1)
-plt.savefig(fname='/scratch/og2114/rebase/plddt.png')
+plt.savefig(fname='/vast/og2114/new_rebase/figures/plddt.png')
 plt.show()
 

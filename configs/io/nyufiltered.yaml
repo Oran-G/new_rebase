@@ -1,15 +1,18 @@
-input: /scratch/og2114/rebase/data/All_Type_II_restriction_enzyme_genes_Protein.fasta
+input: /vast/og2114/rebase/data/All_Type_II_restriction_enzyme_genes_Protein.fasta
 
-output: /scratch/og2114/rebase/data/example.csv
-fasta: /scratch/og2114/rebase/data/mmseq_input.faa
-cluster: /scratch/og2114/rebase/data/cluster-fake.pcsv
-train: /scratch/og2114/rebase/data/train-labeled
-val: /scratch/og2114/rebase/data/val-labeled
-test: /scratch/og2114/rebase/data/test-labeled
+output: /vasr/og2114/rebase/data/example.csv
+fasta: /vast/og2114/rebase/data/mmseq_input.faa
+cluster: /vast/og2114/rebase/data/cluster-fake.pcsv
+train: /vast/og2114/rebase/data/train-labeled
+val: /vast/og2114/rebase/data/val-labeled
+test: /vast/og2114/rebase/data/test-labeled
+tmp: /vast/og2114/rebase/data/tmp
 
-finput:  /scratch/og2114/rebase/data/All_Type_II_restriction_enzyme_genes_Protein.fasta
-final: /scratch/og2114/rebase/data/filtered_data.csv
-temp: /scratch/og2114/rebase/data/filtered_data_clust.tsv
-checkpoints: /scratch/og2114/rebase/models
-wandb_dir: /scratch/og2114/rebase/logs
+finput:  /vast/og2114/rebase/data/All_Type_II_restriction_enzyme_genes_Protein.fasta
+final: /vast/og2114/rebase/data/filtered_data.csv
+temp: /vast/og2114/rebase/data/filtered_data_clust.tsv
+checkpoints: /vast/og2114/output_home/models
+wandb_dir: /vast/og2114/output_home/logs
+
+
 # cluster_data: /Users/orangoodman/dev/deeplearning/focus/data/data.parquet

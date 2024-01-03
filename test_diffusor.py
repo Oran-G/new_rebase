@@ -388,7 +388,7 @@ class RebaseT5(pl.LightningModule):
 
         self.T = 100
         from rfdiffusion.inference.model_runners  import Sampler
-        self.sampler = Sampler(conf=OmegaConf.load('/scratch/og2114/rebase/focus/RFdiffusion/config/inference/base.yaml'))
+        self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusionconfig/inference/base.yaml'))
         self.model = self.sampler.model.train() #ROSETTAFold Model created by sampler
         self.model.to(self.device)
         from rfdiffusion.diffusion import Diffuser
@@ -1204,16 +1204,14 @@ class RebaseT5(pl.LightningModule):
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
-    model = RebaseT5(cfg)#.to(torch.device('cpu'))
-    #qe = model.train_dataloader()#.to(torch.device('cpu'))
-    #for batch, idx in enumerate(qe):
-        #pass
-    #model = RebaseT5.load_from_checkpoint(checkpoint_path='/scratch/og2114/rebase/logs/Focus/3j3hxn14/checkpoints/acc-small_dff-64_dmodel-512_lr-0.0001_batch-512-v4.ckpt')
+    model = RebaseT5(cfg)
     gpu = cfg.model.gpu
     cfg = model.hparams
     cfg.model.gpu = gpu
-
+    os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")
+    os.mkdir(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
     wandb.init(settings=wandb.Settings(start_method='thread', code_dir="."))
+    wandb.save(os.path.abspath(__file__))
     wandb_logger = WandbLogger(project="Focus",save_dir=cfg.io.wandb_dir)
     wandb_logger.watch(model)
     checkpoint_callback = ModelCheckpoint(monitor="val_loss_epoch", filename=f'{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True,save_top_k=5)
@@ -1260,7 +1258,7 @@ def main(cfg: DictConfig) -> None:
     import csv
     dictionaries=model.val_data
     keys = dictionaries[0].keys()
-    a_file = open(f"/scratch/og2114/rebase/logs/slurm_{os.environ['SLURM_JOB_ID']}/final.csv", "w")
+    a_file = open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/final.csv", "w")
     dict_writer = csv.DictWriter(a_file, keys)
     dict_writer.writeheader()
     dict_writer.writerows(dictionaries)

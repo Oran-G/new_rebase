@@ -155,9 +155,7 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
         
 
         '''
-        #import pdb; pdb.set_trace()
         structure = esm.inverse_folding.util.load_structure(f"/vast/og2114/rebase/20220519/output/{self.dataset[idx]['id']}/ranked_0.pdb", 'A')
-        #print(f"/vast/og2114/rebase/20220519/output/{self.dataset[idx]['id']}/ranked_0.pdb")
         coords, seq = esm.inverse_folding.util.extract_coords_from_structure(structure)
         return {
             'bind':torch.tensor( self.dictionary.encode(self.dataset[idx]['bind'])),
@@ -205,8 +203,6 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
 
         for idx, el in enumerate(batch):
             tokens[idx, int(bos):(el.size(0) + int(bos))] = el
-
-            # import pdb; pdb.set_trace()
             if eos:
                 tokens[idx, el.size(0) + int(bos)] = self.dictionary.eos_idx
         
@@ -421,30 +417,6 @@ class RebaseT5(pl.LightningModule):
             print(token_representations['encoder_out'], batch, batch_idx)
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
-        '''
-        record validation data into val_data
-        form:  {
-            seq: protein sequence
-            bind: bind site ground truth
-            predicted: the predicted bind site
-
-        }
-
-        '''
-        ''' not working - to be fixed later'''
-        # for i in range(pred[1].shape[0]):
-        #     try:
-
-        #         lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-        #         self.val_data.append({
-        #             'seq': self.decode(batch['seq'][i].tolist()).split("<eos>")[0],
-        #             'bind': self.decode(batch['bind'][i].tolist()[:batch['bind'][i].tolist().index(2)]),
-        #             'predicted': self.decode(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0])
-        #         })
-                
-        #     except IndexError:
-        #         print('Index Error')
-        #         import pdb; pdb.set_trace()
         confs = self.conf(nn.functional.softmax(pred[1], dim=-1),target=batch['bind'])
         self.log('val_top_conf', float(confs[0]), on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log('val_low_conf', float(confs[1]), on_step=True, on_epoch=True, prog_bar=True, logger=True)
@@ -578,7 +550,7 @@ class RebaseT5(pl.LightningModule):
             print(len(dictionaries))
             import pdb; pdb.set_trace()
             keys = dictionaries[0].keys()
-            a_file = open(f"/scratch/og2114/rebase/logs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/{self.trainer.current_epoch}-output.csv", "w")
+            a_file = open(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs/{self.trainer.current_epoch}-output.csv", "w")
             dict_writer = csv.DictWriter(a_file, keys)
             dict_writer.writeheader()
             dict_writer.writerows(dictionaries)
@@ -628,11 +600,7 @@ class RebaseT5(pl.LightningModule):
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
     
-    model = RebaseT5(cfg)#.to(torch.device('cpu'))
-    #qe = model.train_dataloader()#.to(torch.device('cpu'))
-    #for batch, idx in enumerate(qe):
-        #pass
-    #model = RebaseT5.load_from_checkpoint(checkpoint_path='/scratch/og2114/rebase/logs/Focus/3j3hxn14/checkpoints/acc-small_dff-64_dmodel-512_lr-0.0001_batch-512-v4.ckpt')
+    model = RebaseT5(cfg)
     gpu = cfg.model.gpu
     cfg = model.hparams
     cfg.model.gpu = gpu
@@ -647,6 +615,8 @@ def main(cfg: DictConfig) -> None:
     print(model.batch_size)
     print('tune: ')
     model.batch_size = 2
+    os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")
+    os.mkdir(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
     
     print(int(max(1, cfg.model.batch_size/model.batch_size)))
     trainer = pl.Trainer(
@@ -684,7 +654,8 @@ def main(cfg: DictConfig) -> None:
     import csv
     dictionaries=model.val_data
     keys = dictionaries[0].keys()
-    a_file = open(f"/scratch/og2114/rebase/logs/slurm_{os.environ['SLURM_JOB_ID']}/final.csv", "w")
+    
+    a_file = open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/final.csv", "w")
     dict_writer = csv.DictWriter(a_file, keys)
     dict_writer.writeheader()
     dict_writer.writerows(dictionaries)

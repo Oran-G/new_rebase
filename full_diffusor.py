@@ -3,7 +3,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from transformers import T5Config, T5ForConditionalGeneration, get_linear_schedule_with_warmup,  get_polynomial_decay_schedule_with_warmup, BertGenerationConfig, BertGenerationDecoder
 from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrapperDataset
-#from ../constants import tokenization, neucleotides
+
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from omegaconf import DictConfig, OmegaConf
@@ -40,7 +40,6 @@ class RFdict():
     def encode(self, line):
         idx = []
         for char in line:
-            #print(char)
             if char in self.one_letter:
                 idx.append(self.letter_idx[char])
             else:
@@ -194,8 +193,6 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
 
     
         proccessed = process_target(f"/vast/og2114/rebase/20220519/output/{self.dataset[idx]['id']}/ranked_0.pdb")
-        #import pdb; pdb.set_trace() 
-        #print(self.dictionary.encode(self.dataset[idx]['bind']))
         print(proccessed.keys())
         MAXLEN = 271
         if torch.tensor(proccessed['xyz_27']).shape[0] >= MAXLEN:
@@ -364,8 +361,6 @@ class RebaseT5(pl.LightningModule):
         accuracy: https://torchmetrics.readthedocs.io/en/stable/classification/accuracy.html
         '''
 
-        #self.loss = nn.CrossEntropyLoss(ignore_index=self.ifalphabet.padding_idx)
-        #self.accuracy = torchmetrics.Accuracy(ignore_index=self.ifalphabet.padding_idx, mdmc_average='samplewise')
         self.perplex = torch.nn.CrossEntropyLoss(reduction='none')
 
         '''
@@ -376,7 +371,7 @@ class RebaseT5(pl.LightningModule):
 
         self.T = 100
         from rfdiffusion.inference.model_runners  import Sampler
-        self.sampler = Sampler(conf=OmegaConf.load('/scratch/og2114/rebase/focus/RFdiffusion/config/inference/base.yaml'))
+        self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusionconfig/inference/base.yaml'))
         self.model = self.sampler.model.train() #ROSETTAFold Model created by sampler
         self.model.to(self.device)
         from rfdiffusion.diffusion import Diffuser
@@ -458,14 +453,8 @@ class RebaseT5(pl.LightningModule):
             #from model_runnsers Sampler._preprocess mostly
             seq = torch.nn.functional.one_hot(batch['seq'][0], num_classes=22)
             print('shape:', seq.shape)
-            #import pdb; pdb.set_trace()
             L = seq.shape[0]
             print('LENGTH = ', L)
-            #samp_init = self.sampler.sample_init()
-            #pre = self.sampler._preprocess(torch.zeros((L, 22)), pose_t, t)
-            #print(pre)
-            #import pdb; pdb.set_trace()
-
             msa_masked = torch.zeros((1, 1, L, 48))
             msa_masked[:, :, :, :22] = seq[None, None]
             msa_masked[:, :, :, 22:44] = seq[None, None]
@@ -476,9 +465,7 @@ class RebaseT5(pl.LightningModule):
             msa_full[:, :, 0, 23] = 1.0
             msa_full[:, :, -1, 24] = 1.0
             t1d = torch.zeros((1, 1, L - batch['bind'].shape[1], 22))
-            #import pdb; pdb.set_trace()
             t1d = torch.cat((torch.unsqueeze(torch.unsqueeze(torch.nn.functional.one_hot(batch['bind'][0], num_classes=22), 0), 0).to('cpu'), t1d), dim=2)
-            #t1d = torch.cat((t1d, torch.zeros((1, 1, L, 5))), dim=-1)
             t2d = xyz_to_t2d(torch.unsqueeze(torch.unsqueeze(pose_t, 0), 0))
             seq_tmp = t1d[..., :-1].argmax(dim=-1).reshape(-1, L)
             
@@ -495,7 +482,6 @@ class RebaseT5(pl.LightningModule):
             seq_in = torch.nn.functional.one_hot(seq_in, num_classes=22).float()
             mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
             print(seq_in.shape)
-            #import pdb; pdb.set_trace()
 
             pose_t = pose_t.to(batch['bind'].device)
             t1d = t1d.to(batch['bind'].device)
@@ -565,12 +551,8 @@ class RebaseT5(pl.LightningModule):
             #from model_runnsers Sampler._preprocess mostly
             seq = torch.nn.functional.one_hot(batch['seq'][0], num_classes=22)
             print('shape:', seq.shape)
-            #import pdb; pdb.set_trace()
             L = seq.shape[0]
             print('LENGTH = ', L)
-            #samp_init = self.sampler.sample_init()
-            #pre = self.sampler._preprocess(torch.zeros((L, 22)), pose_t_1, t)
-            #print(pre)
             #import pdb; pdb.set_trace()
 
             msa_masked = torch.zeros((1, 1, L, 48))
@@ -583,9 +565,9 @@ class RebaseT5(pl.LightningModule):
             msa_full[:, :, 0, 23] = 1.0
             msa_full[:, :, -1, 24] = 1.0
             t1d = torch.zeros((1, 1, L - batch['bind'].shape[1], 22))
-            #import pdb; pdb.set_trace()
+
             t1d = torch.cat((torch.unsqueeze(torch.unsqueeze(torch.nn.functional.one_hot(batch['bind'][0], num_classes=22), 0), 0).to('cpu'), t1d), dim=2)
-            #t1d = torch.cat((t1d, torch.zeros((1, 1, L, 5))), dim=-1)
+
             t2d = xyz_to_t2d(torch.unsqueeze(torch.unsqueeze(pose_t, 0), 0))
             seq_tmp = t1d[..., :-1].argmax(dim=-1).reshape(-1, L)
             alpha, _, alpha_mask, _ = get_torsions(pose_t_1.reshape(-1, L, 27, 3), seq_tmp, torch.full((22, 4, 4), 0), torch.full((22, 10), False, dtype=torch.bool), torch.ones((22, 3, 2))) #these wierd tensors are from rfdiffusion.utils
@@ -601,7 +583,7 @@ class RebaseT5(pl.LightningModule):
             seq_in = torch.nn.functional.one_hot(seq_in, num_classes=22).float()
             mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
             print(seq_in.shape)
-            #import pdb; pdb.set_trace()
+
 
             pose_t_1 = pose_t_1.to(batch['bind'].device)
             t1d = t1d.to(batch['bind'].device)
@@ -627,7 +609,6 @@ class RebaseT5(pl.LightningModule):
             print(xyz_t_1.shape)
             print(alpha_t.shape)
             print('MASK_27 = ', mask.shape) 
-            #import pdb; pdb.set_trace()
             #msa_prev, pair_prev, px0, state_prev, alpha, logits, plddt = self.model(
             
             with torch.no_grad():    
@@ -679,7 +660,7 @@ class RebaseT5(pl.LightningModule):
             msa_full[:, :, -1, 24] = 1.0
             t1d = torch.zeros((1, 1, L - batch['bind'].shape[1], 22))
             t1d = torch.cat((torch.unsqueeze(torch.unsqueeze(torch.nn.functional.one_hot(batch['bind'][0], num_classes=22), 0), 0).to('cpu'), t1d), dim=2)
-            #t1d = torch.cat((t1d, torch.zeros((1, 1, L, 5))), dim=-1)
+
             t2d = xyz_to_t2d(torch.unsqueeze(torch.unsqueeze(pose_t, 0), 0))
             seq_tmp = t1d[..., :-1].argmax(dim=-1).reshape(-1, L)
             
@@ -798,10 +779,7 @@ class RebaseT5(pl.LightningModule):
                 #import pdb; pdb.set_trace()
                 L = seq.shape[0]
                 print('LENGTH = ', L)
-                #samp_init = self.sampler.sample_init()
-                #pre = self.sampler._preprocess(torch.zeros((L, 22)), pose_t, t)
-                #print(pre)
-                #import pdb; pdb.set_trace()
+
 
                 msa_masked = torch.zeros((1, 1, L, 48))
                 msa_masked[:, :, :, :22] = seq[None, None]
@@ -1203,18 +1181,17 @@ class RebaseT5(pl.LightningModule):
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
-    model = RebaseT5(cfg)#.to(torch.device('cpu'))
-    #qe = model.train_dataloader()#.to(torch.device('cpu'))
-    #for batch, idx in enumerate(qe):
-        #pass
-    #model = RebaseT5.load_from_checkpoint(checkpoint_path='/scratch/og2114/rebase/logs/Focus/3j3hxn14/checkpoints/acc-small_dff-64_dmodel-512_lr-0.0001_batch-512-v4.ckpt')
+    model = RebaseT5(cfg)
     gpu = cfg.model.gpu
     cfg = model.hparams
     cfg.model.gpu = gpu
+    os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")
+    os.mkdir(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
 
     wandb.init(settings=wandb.Settings(start_method='thread', code_dir="."))
     wandb_logger = WandbLogger(project="Focus",save_dir=cfg.io.wandb_dir)
     wandb_logger.watch(model)
+    wandb.save(os.path.abspath(__file__))
     checkpoint_callback = ModelCheckpoint(monitor="val_loss_epoch", filename=f'{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True,save_top_k=5)
     acc_callback = ModelCheckpoint(monitor="val_acc_epoch", filename=f'acc-{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True, save_top_k=5)
     swa_callback = pl.callbacks.StochasticWeightAveraging(swa_lrs=1e-2)
@@ -1259,7 +1236,7 @@ def main(cfg: DictConfig) -> None:
     import csv
     dictionaries=model.val_data
     keys = dictionaries[0].keys()
-    a_file = open(f"/scratch/og2114/rebase/logs/slurm_{os.environ['SLURM_JOB_ID']}/final.csv", "w")
+    a_file = open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/final.csv", "w")
     dict_writer = csv.DictWriter(a_file, keys)
     dict_writer.writeheader()
     dict_writer.writerows(dictionaries)
