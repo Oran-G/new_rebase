@@ -7,12 +7,10 @@ train: /vast/og2114/rebase/data/train-labeled
 val: /vast/og2114/rebase/data/val-labeled
 test: /vast/og2114/rebase/data/test-labeled
 tmp: /vast/og2114/rebase/data/tmp
+data: /vast/og2114/rebase/data
 
 finput:  /vast/og2114/rebase/data/All_Type_II_restriction_enzyme_genes_Protein.fasta
 final: /vast/og2114/rebase/data/filtered_data.csv
 temp: /vast/og2114/rebase/data/filtered_data_clust.tsv
 checkpoints: /vast/og2114/output_home/models
 wandb_dir: /vast/og2114/output_home/logs
-
-
-# cluster_data: /Users/orangoodman/dev/deeplearning/focus/data/data.parquet
