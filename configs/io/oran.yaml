@@ -1,0 +1,14 @@
+input: /Users/orangoodman/dev/deeplearning/focus/data/All_Type_II_restriction_enzyme_genes_Protein.txt
+
+output: /Users/orangoodman/dev/deeplearning/focus/data/example.parquet
+fasta: /Users/orangoodman/dev/deeplearning/focus/data/mmseq_input.faa
+cluster: /Users/orangoodman/dev/deeplearning/focus/data/cluster.parquet
+train: /Users/orangoodman/dev/deeplearning/focus/data/train-labeled
+val: /Users/orangoodman/dev/deeplearning/focus/data/val-labeled
+test: /Users/orangoodman/dev/deeplearning/focus/data/test-labeled
+
+finput:  /Users/orangoodman/dev/deeplearning/focus/data/All_Type_II_restriction_enzyme_genes_Protein.fasta
+final: /Users/orangoodman/dev/deeplearning/focus/data/final.csv
+temp: /Users/orangoodman/dev/deeplearning/focus/data/clusters.tsv
+checkpoints: /Users/orangoodman/dev/deeplearning/focus/models
+# cluster_data: /Users/orangoodman/dev/deeplearning/focus/data/data.parquet

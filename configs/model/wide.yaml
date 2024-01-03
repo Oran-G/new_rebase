@@ -1,0 +1,13 @@
+d_ff: 128
+d_model: 768
+batch_size: 512
+lr: 1e-2
+layers: 2
+lr_patience: 100
+scheduler: True
+gpu: -1
+max_epochs: -1
+name: wide
+precision: 16
+#size -> 10.3 million params
+#74 iters on RTX8000 at fp32

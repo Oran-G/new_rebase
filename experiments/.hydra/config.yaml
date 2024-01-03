@@ -1,0 +1,30 @@
+io:
+  input: /scratch/og2114/rebase/data/All_Type_II_restriction_enzyme_genes_Protein.fasta
+  output: /scratch/og2114/rebase/data/example.csv
+  fasta: /scratch/og2114/rebase/data/mmseq_input.faa
+  cluster: /scratch/og2114/rebase/data/cluster-fake.pcsv
+  train: /scratch/og2114/rebase/data/train-labeled
+  val: /scratch/og2114/rebase/data/val-labeled
+  test: /scratch/og2114/rebase/data/test-labeled
+  finput: /scratch/og2114/rebase/data/All_Type_II_restriction_enzyme_genes_Protein.fasta
+  final: /scratch/og2114/rebase/data/filtered_data.csv
+  temp: /scratch/og2114/rebase/data/filtered_data_clust.tsv
+  checkpoints: /scratch/og2114/rebase/models
+  wandb_dir: /scratch/og2114/rebase/logs
+model:
+  d_ff: 64
+  d_model: 512
+  batch_size: 512
+  lr: 0.0001
+  layers: 1
+  lr_patience: 100
+  scheduler: true
+  gpu: 4
+  max_epochs: -1
+  name: small
+  precision: 32
+esm:
+  esm: true
+  esmgrad: false
+  path: esm1_t6_43M_UR50S
+  layers: 6

@@ -1,0 +1,12 @@
+input: /datastores/focus-data/All_Type_II_restriction_enzyme_genes_Protein.txt
+output: /datastores/focus-data/example.parquet
+fasta: /datastores/focus-data/mmseq_input.faa
+cluster: /datastores/focus-data/cluster.parquet
+train: /datastores/focus-data/train-labeled
+val: /datastores/focus-data/val-labeled
+test: /datastores/focus-data/test-labeled
+
+finput: /home/jovyan/newdata/All_Type_II_restriction_enzyme_genes_Protein.fasta
+final: /home/jovyan/newdata/final.csv
+temp: /home/jovyan/newdata/clusters.tsv
+checkpoints: /home/jovyan/newdata/models
