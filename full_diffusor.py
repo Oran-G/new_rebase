@@ -1177,7 +1177,7 @@ class RebaseT5(pl.LightningModule):
 
 
 
-@hydra.main(version_base="1.2.0",config_path='../configs', config_name='defaults')
+@hydra.main(version_base="1.2.0",config_path='/vast/og2114/new_rebase/configs', config_name='defaults')
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
