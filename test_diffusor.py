@@ -388,7 +388,7 @@ class RebaseT5(pl.LightningModule):
 
         self.T = 100
         from rfdiffusion.inference.model_runners  import Sampler
-        self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusionconfig/inference/base.yaml'))
+        self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusion/config/inference/base.yaml'))
         self.model = self.sampler.model.train() #ROSETTAFold Model created by sampler
         self.model.to(self.device)
         from rfdiffusion.diffusion import Diffuser
