@@ -618,9 +618,12 @@ def main(cfg: DictConfig) -> None:
     model.batch_size = 2
     try:
         os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")
+    except: 
+        pass
     try:
         os.mkdir(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
-    
+    except: 
+        pass
     print(int(max(1, cfg.model.batch_size/model.batch_size)))
     trainer = pl.Trainer(
         gpus=-1, 
