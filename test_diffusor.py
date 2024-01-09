@@ -26,10 +26,10 @@ import json
 import wandb
 import csv
 import random
-from ..RFdiffusion.rfdiffusion.kinematics import xyz_to_t2d
-from ..RFdiffusion.rfdiffusion.util import get_torsions
-from ..RFdiffusion.rfdiffusion.inference.utils import Denoise
-from ..RFdiffusion.rfdiffusion.inference.utils import process_target
+from rfdiffusion.kinematics import xyz_to_t2d
+from rfdiffusion.util import get_torsions
+from rfdiffusion.inference.utils import Denoise
+from rfdiffusion.inference.utils import process_target
 class RFdict():
     def __init__(self):
         self.one_letter = ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V", "?", "-"] #20 AA, unk, mask. this is taken from rfidffusion.chemical, and will also be used for Neuc
