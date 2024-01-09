@@ -434,7 +434,10 @@ def main(cfg: DictConfig) -> None:
     model = RebaseT5(cfg)
     max1 = 0
   
-
+    try:
+        os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")
+    try:
+        os.mkdir(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
     wandb_logger = WandbLogger(project="Focus",save_dir=cfg.io.wandb_dir)
     wandb_logger.experiment.config.update(dict(cfg.model))
     wandb.save(os.path.abspath(__file__))

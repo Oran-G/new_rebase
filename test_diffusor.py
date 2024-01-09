@@ -1208,8 +1208,10 @@ def main(cfg: DictConfig) -> None:
     gpu = cfg.model.gpu
     cfg = model.hparams
     cfg.model.gpu = gpu
-    os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")
-    os.mkdir(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
+    try:
+        os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")
+    try:
+        os.mkdir(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
     wandb.init(settings=wandb.Settings(start_method='thread', code_dir="."))
     wandb.save(os.path.abspath(__file__))
     wandb_logger = WandbLogger(project="Focus",save_dir=cfg.io.wandb_dir)

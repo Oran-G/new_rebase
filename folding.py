@@ -616,8 +616,10 @@ def main(cfg: DictConfig) -> None:
     print(model.batch_size)
     print('tune: ')
     model.batch_size = 2
-    os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")
-    os.mkdir(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
+    try:
+        os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")
+    try:
+        os.mkdir(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
     
     print(int(max(1, cfg.model.batch_size/model.batch_size)))
     trainer = pl.Trainer(
