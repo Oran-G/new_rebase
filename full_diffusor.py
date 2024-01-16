@@ -30,6 +30,7 @@ from rfdiffusion.kinematics import xyz_to_t2d
 from rfdiffusion.util import get_torsions
 from rfdiffusion.inference.utils import Denoise
 from rfdiffusion.inference.utils import process_target
+from .diffusor_utils import PARAMS
 class RFdict():
     def __init__(self):
         self.one_letter = ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V", "?", "-"] #20 AA, unk, mask. this is taken from rfidffusion.chemical, and will also be used for Neuc
@@ -330,7 +331,7 @@ class RebaseT5(pl.LightningModule):
             self.cfg['slurm'] = str(os.environ.get('SLURM_JOB_ID'))
         except:
             pass
-        self.save_hyperparameters(cfg)
+        self.save_hyperparameters(self.cfg)
         self.batch_size = self.hparams.model.batch_size
         print("Argument hparams: ", self.hparams)
         print('batch size', self.hparams.model.batch_size)
@@ -338,38 +339,15 @@ class RebaseT5(pl.LightningModule):
 
         
         self.ifalphabet= RFdict()
-        '''
-        T5 model to be used as a possible decoder
-
-        https://huggingface.co/docs/transformers/model_doc/t5
-        '''
-        '''
-        t5_config=T5Config(
-            vocab_size=len(self.ifalphabet),
-            decoder_start_token_id=self.ifalphabet.get_idx('<af2>'),
-            d_model=self.hparams.model.d_model,
-            d_ff=self.hparams.model.d_ff,
-            num_layers=self.hparams.model.layers,
-            pad_token_id=self.ifalphabet.padding_idx,
-            eos_token_id=self.ifalphabet.eos_idx,
-        )
-        self.model = T5ForConditionalGeneration(t5_config)
-
-        '''
-        '''
-        loss: https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html#torch.nn.CrossEntropyLoss
-        accuracy: https://torchmetrics.readthedocs.io/en/stable/classification/accuracy.html
-        '''
-
-        self.perplex = torch.nn.CrossEntropyLoss(reduction='none')
-
+        
         '''
         used to record validation data for logging
         '''
         self.val_data = []
         print('initialized')
-
-        self.T = 100
+        
+        self.params = PARAMS
+        self.T = PARAMS['T']
         from rfdiffusion.inference.model_runners  import Sampler
         self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusion/config/inference/base.yaml'))
         self.model = self.sampler.model.train() #ROSETTAFold Model created by sampler
@@ -377,16 +355,16 @@ class RebaseT5(pl.LightningModule):
         from rfdiffusion.diffusion import Diffuser
         
         self.diffuser = Diffuser(T=self.T,
-		    b_0=0.01, 
-		    b_T=0.07, 
-		    min_sigma=.02, #IGSO3 docs say to do this 
-            max_sigma=1.5, #does not matter with linear schedule
-            min_b=1.5, #”lower value for Beta in Ho schedule analog” —> IDK with this is  -> page 12 in training stuff/table 6
-            max_b=2.5, 
+		    b_0=PARAMS['Bt0'], 
+		    b_T=PARAMS['Bt0'], 
+		    min_sigma=0.01, #IGSO3 docs say to do this 
+            max_sigma=PARAMS['Bt0']+((PARAMS['BtT'] - PARAMS['Bt0'])/2), #see page 12
+            min_b=PARAMS['Bt0'], 
+            max_b=PARAMS['BtT'], 
             schedule_type='linear', # this gets fed into the Euclidean diffuser class —> default for that is linear 
             so3_schedule_type='linear',  # same but for IGS03 class
             so3_type='igs03', #this is literally not stored or used anywhere in the init function,  
-            crd_scale=0.25, # IDK how to use this either, I think it has to do with centering the coordinates in space to prevent data leakage as of rfdiffusion.diffusion.py line 641
+            crd_scale=PARAMS["crd_scale"], #  I think it has to do with centering the coordinates in space to prevent data leakage as of rfdiffusion.diffusion.py line 641
             )
         
 

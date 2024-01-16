@@ -1,6 +1,24 @@
 import torch
 import math
 from rfdiffusion.coord6d import get_coords6d
+import rfdiffusion.kinematics as kinematics
+PARAMS = { #see page 33/table 6
+    **kinematics.PARAMS
+    "T":200,
+    "wtrans": 0.5, 
+    "wrot":1.0, 
+    "dclamp":10, 
+    "gamma":.99, 
+    "w2d":1.0,
+    "lr":,
+    "lr_decay":,
+    "Bt0": .01, #formula is Bt0 + (t/t)(BtT - Bt0)
+    "BtT": .07,
+    "Br0": 1.06, #formula is (t*Br0) + .5*(t/T)**2(BrT - Br0)
+    "BrT": 1.77,
+    "crd_scale":0.25,
+
+}
 def gramschmidt(z: torch.tensor):
     #get r from z using gramschmidt method described pg. 3 supplemental methods
     if len(z.shape) == 4:
@@ -34,7 +52,7 @@ def dframe(x, xpred, wtrans, wrot, dclamp):
         for l in range(x[0].shape[0]):
             total += wtrans*(min(torch.linalg.norm((x[1] - x_pred[1]), ord=2).pow(2), dclamp)**2) + wrot*((torch.linalg.norm((torch.eye(3) - (xpred[0].t() @ x[0]))).pow(2))**2)
         return math.sqrt(total / x[0].shape[0])
-def lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma):
+def lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma): #loss described on page 28
     if len(x[0].shape) == 5:
         batch = []
         for b in range(xyz_27.shape[0]):
@@ -50,9 +68,20 @@ def lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma):
             full_total += gamma_term*(dframe(xyztox(xyz_27), xyztox(xyz_27_preds[i]), wtrans, wrot, dclamp)**2)
             divisor += gamma_term
         return full_total / gamma_term
-
-
-   # 6d coordinates order: (dist,omega,theta,phi)
+def l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27): #loss as described on page 30
+    
+    #c6d : pytorch tensor of shape [batch,nres,nres,4]
+    #      stores stacked dist,omega,theta,phi 2D maps 
+    # 6d coordinates order: (dist,omega,theta,phi)
+    c6d = kinematics.c6d_to_bins(kinematics.xyz_to_c6d(xyz_27)[0])
+    dist, omega, theta, phi = c6d[..., 0], c6d[..., 1], c6d[..., 2] ,c6d[..., 3]
+    return torch.nn.functional.cross_entropy(logits_dist, dist) + 
+        torch.nn.functional.cross_entropy(logits_omega, omega) + 
+        torch.nn.functional.cross_entropy(logits_theta, theta) +
+        torch.nn.functional.cross_entropy(logits_phi,  phi)
+def ldiffusion(xyz_27, xyz_27_preds, logits_dist, logits_omega, logits_theta, logits_phi, wtrans, wrot, dclamp, gamma, w2d):
+    return lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma) + 
+        (w2d*l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27))
 
 
 class RFdict():
