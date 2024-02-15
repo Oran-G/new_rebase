@@ -2,6 +2,7 @@ import torch
 import math
 from rfdiffusion.coord6d import get_coords6d
 import rfdiffusion.kinematics as kinematics
+from constants import NEUC_NUMS, NEUCLEOTIDES
 PARAMS = { #see page 33/table 6
     **kinematics.PARAMS
     "T":200,
@@ -17,7 +18,8 @@ PARAMS = { #see page 33/table 6
     "Br0": 1.06, #formula is (t*Br0) + .5*(t/T)**2(BrT - Br0)
     "BrT": 1.77,
     "crd_scale":0.25,
-
+    "crop": 381, #default to 276 for last working example on my system
+    "batch": 64
 }
 def gramschmidt(z: torch.tensor):
     #get r from z using gramschmidt method described pg. 3 supplemental methods
@@ -35,8 +37,6 @@ def gramschmidt(z: torch.tensor):
             r3 = torch.linalg.cross(r1, r2)
             residues.append(torch.stack([r1, r2, r3]))
         return torch.stack(residues)
-
-
 def xyztox(xyz_27: torch.tensor):
     z = xyz_27[:, :3, :]
     y = gramschmidt(x)
@@ -107,6 +107,18 @@ class RFdict():
     def eos(self, line):
         return line.append(eos_idx)
 
+class neuc_dict():
+    self.neucleotides = NEUCLEOTIDES
+    self.neuc_nums = NEUC_NUMS
+    self.letter_idx = {self.neucleotides.keys()[i]:i for i in range(len(self.neucleotides.keys))}
+    def encode(self, line):
+        enc = torch.zeros(len(line), 5)
+        for char in range(line):
+            if line[char] in self.neucleotides.keys():
+                enc[line[char], self.neuc_nums[self.letter_idx[line[char]]]] = 1
+            else:
+                enc[line[char], 4] = 1
+        return enc
 def reset_all_weights(model: nn.Module) -> None:
     """
     refs:
@@ -221,12 +233,13 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
 
         super().__init__(dataset)
         self.dictionary = dictionary
+        self.neuc_dict = neuc_dict()
         self.apply_bos = apply_bos
         self.apply_eos = apply_eos
         '''
         batchConverter git line 217 - https://github.com/facebookresearch/esm/blob/main/esm/inverse_folding/util.py
         '''
-        self.batch_converter_coords = esm.inverse_folding.util.CoordBatchConverter(self.dictionary)
+
 
     def __getitem__(self, idx):
         '''
@@ -254,7 +267,7 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
             end = -1
         #import pdb; pdb.set_trace()
         return {
-            'bind':torch.tensor( self.dictionary.encode(self.dataset[idx]['bind'])),
+            'bind':torch.tensor( self.neuc_dict.encode(self.dataset[idx]['bind'])),
             'xyz_27': torch.tensor(proccessed['xyz_27'])[start: end], #tensor of atomic coords
             'mask_27': torch.tensor(proccessed['mask_27'][start: end]), #tensor of true/false for if the atoms exist
             'seq': torch.tensor(proccessed['seq'][start:end]), #tensor of idx
@@ -265,55 +278,6 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
     def __len__(self):
         return len(self.dataset)
 
-    def collate_tensors(self, batch: List[torch.tensor], bos=False, eos=False):
-        '''
-        utility for collating tensors together, applying eos and bos if needed,
-        padding samples with self.dictionary.padding_idx as neccesary for length
-
-        input:
-            batch: [
-                torch.tensor shape[l1],
-                torch.tensor shape[l2],
-                ...
-            ]
-            bos: bool, apply bos (defaults to class init settings) - !!!BOS is practically <af2>, idx 34!!!
-            eos: bool, apply eos (defaults to class init settings)
-        output:
-            torch.tensor shape[len(input), max(l1, l2, ...)+bos+eos]
-        '''
-        
-        if eos == None:
-            eos = self.dictionary.eos()
-
-        batch_size = len(batch)
-        max_len = max(el.size(0) for el in batch)
-        tokens = torch.empty(
-            (
-                batch_size,
-                max_len + int(bos) + int(eos) # eos and bos
-            ),
-            dtype=torch.int64,
-        ).fill_(self.dictionary.padding_idx)
-
-        if bos:
-            tokens[:, 0] = self.dictionary.get_idx('<af2>')
-
-        for idx, el in enumerate(batch):
-            tokens[idx, int(bos):(el.size(0) + int(bos))] = el
-
-            # import pdb; pdb.set_trace()
-            if eos:
-                tokens[idx, el.size(0) + int(bos)] = self.dictionary.eos_idx
-
-        return tokens
-
-
-
-    def collater(self, batch):
-        if isinstance(batch, list) and torch.is_tensor(batch[0]):
-            return self.collate_tensors(batch)
-        else:
-            return self.collate_dicts(batch)
     def collate_dicts(self, batch: List[Dict[str, torch.tensor]]):
         '''
         combine sequences of the form
@@ -351,14 +315,13 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
             return [el[key] for el in lst]
 
 
-
+        ##
         post_proccessed = {
-            'bind': self.collate_tensors(select_by_key(batch, 'bind'), eos=False),
-            
-            'seq': self.collate_tensors(select_by_key(batch, 'seq')),
-            'xyz_27': torch.stack(select_by_key(batch, 'xyz_27'), dim=0),
-            'mask_27': torch.stack(select_by_key(batch, 'mask_27'), dim=0),
-            'idx_pdb': select_by_key(batch, 'idx_pdb'),
+            'bind': batch['bind'][0],
+            'seq': batch['seq'][0],
+            'xyz_27': batch['xyz_27'][0],
+            'mask_27': batch['mask_27'][0],
+            'idx_pdb': batch['idx_pdb'][0],
             
         }
         return post_proccessed

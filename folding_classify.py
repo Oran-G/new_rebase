@@ -709,7 +709,7 @@ def main(cfg: DictConfig) -> None:
     import csv
     dictionaries=model.val_data
     keys = dictionaries[0].keys()
-    a_file = open(f"/scratch/og2114/rebase/logs/slurm_{os.environ['SLURM_JOB_ID']}/final.csv", "w")
+    a_file = open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/final.csv", "w")
     dict_writer = csv.DictWriter(a_file, keys)
     dict_writer.writeheader()
     dict_writer.writerows(dictionaries)

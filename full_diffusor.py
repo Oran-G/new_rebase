@@ -1,318 +1,39 @@
 import torch
 import torch.nn as nn
-import pytorch_lightning as pl
-from transformers import T5Config, T5ForConditionalGeneration, get_linear_schedule_with_warmup,  get_polynomial_decay_schedule_with_warmup, BertGenerationConfig, BertGenerationDecoder
-from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrapperDataset
-
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+import torchmetrics
+import torch_geometric
+import pytorch_lightning as pl
+from pytorch_lightning.loggers import WandbLogger
+from pl_bolts.datamodules.async_dataloader import AsynchronousLoader
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
+from transformers import T5Config, T5ForConditionalGeneration, get_linear_schedule_with_warmup,  get_polynomial_decay_schedule_with_warmup, BertGenerationConfig, BertGenerationDecoder
+from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrapperDataset
+import esm
+import esm.inverse_folding
 from omegaconf import DictConfig, OmegaConf
 import hydra
-import torchmetrics
-from typing import List, Dict
-from pytorch_lightning.loggers import WandbLogger
-from pandas import DataFrame as df
-import pandas as pd
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
-import pandas as pd
-import esm.inverse_folding
-import esm
-import torch_geometric
 from GPUtil import showUtilization as gpu_usage
+from typing import List, Dict
+import pandas as pd
+from pandas import DataFrame as df
 import time
-from pl_bolts.datamodules.async_dataloader import AsynchronousLoader
 import os
 import json
 import wandb
 import csv
 import random
+
 from rfdiffusion.kinematics import xyz_to_t2d
-from rfdiffusion.util import get_torsions
+from rfdiffusion.util import get_torsions, make_frame, torsion_indices, torsion_can_flip, reference_angles
 from rfdiffusion.inference.utils import Denoise
 from rfdiffusion.inference.utils import process_target
-from .diffusor_utils import PARAMS
-class RFdict():
-    def __init__(self):
-        self.one_letter = ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V", "?", "-"] #20 AA, unk, mask. this is taken from rfidffusion.chemical, and will also be used for Neuc
-        self.letter_idx = {self.one_letter[i]:i for i in range(len(self.one_letter))}
-        self.pad_idx = 22
-        self.eos_idx = 23
-        self.padding_idx = 22
-    def encode(self, line):
-        idx = []
-        for char in line:
-            if char in self.one_letter:
-                idx.append(self.letter_idx[char])
-            else:
-                idx.append(20)
-        return idx
-    def pad(self, line, length):
-        idx = line
-        for i in range(length - len(idx)):
-            idx.append(self.pad_idx)
-        return idx
-    def eos(self, line):
-        return line.append(eos_idx)
+from rfdiffusion.chemical import aa2long aa2longalt, torsions, ideal_coords
+
+from .diffusor_utils import PARAMS, RFdict, neuc_dict, reset_all_weights, CSVDataset,EncodedFastaDatasetWrapper
+from constants import RFdict
         
-
-
-
-def reset_all_weights(model: nn.Module) -> None:
-    """
-    refs:
-        - https://discuss.pytorch.org/t/how-to-re-set-alll-parameters-in-a-network/20819/6
-        - https://stackoverflow.com/questions/63627997/reset-parameters-of-a-neural-network-in-pytorch
-        - https://pytorch.org/docs/stable/generated/torch.nn.Module.html
-    """
-
-    @torch.no_grad()
-    def weight_reset(m: nn.Module):
-        # - check if the current module has reset_parameters & if it's callabed called it on m
-        reset_parameters = getattr(m, "reset_parameters", None)
-        if callable(reset_parameters):
-            m.reset_parameters()
-
-    # Applies fn recursively to every submodule see: https://pytorch.org/docs/stable/generated/torch.nn.Module.html
-    model.apply(fn=weight_reset)
-
-class CSVDataset(Dataset):
-    def __init__(self, csv_path, split, split_seed=42, supervised=True, plddt=85, clust=False):
-        super().__init__()
-        """
-        args:
-            csv_path: path to data
-            split: one of "train" "val" "test"
-            split_seed: used for future work, not yet
-            supervised: if True drop all samples without a bind site
-            plddt: plddt cutoff for alphafold confidence
-        """
-        print('start of data')
-        self.df = pd.read_csv(csv_path)
-        if supervised:
-            self.df = self.df.dropna()
-
-        print("pre filter",len(self.df))
-
-        def alpha(ids):
-            return os.path.isfile(f'/vast/og2114/rebase/20220519/output/{ids}/ranked_0.pdb') and (max(json.load(open(f'/vast/og2114/rebase/20220519/output/{ids}/ranking_debug.json'))['plddts'].values()) >= plddt)
-        #self.df  = self.df[self.df['id'].apply(alpha) ==True ]
-        self.df = self.df[self.df['id'] != 'Csp7507ORF4224P']
-        print("post filter",len(self.df))
-
-        spl = self.split(split)
-        self.data = spl[['seq','bind', 'id']].to_dict('records')
-        print(len(self.data))
-        self.data = [x for x in self.data if x not in self.data[16*711:16*714]]
-        self.clustered_data = {}
-        tmp_clust = self.df.cluster.unique()
-        self.cluster_idxs =[]
-        for cluster in tmp_clust:
-            t = spl[spl['cluster'] == cluster][['seq','bind', 'id']].to_dict('records')
-            if len(t) != 0:
-                self.clustered_data[cluster]= spl[spl['cluster'] == cluster][['seq','bind', 'id']].to_dict('records')
-                self.cluster_idxs.append(cluster)
-        self.use_cluster=clust
-        
-        num = 0
-        for data in self.data:
-            
-            if len(data['seq']) > 376:
-                num += 1
-        print("SEQUENCES OVER LENGTH 376: ", num)
-        
-        print('initialized', self.__len__())
-    def __getitem__(self, idx):
-        if self.use_cluster == False:
-            return self.data[idx]
-        else:
-            return self.clustered_data[self.cluster_idxs[idx]][random.randint(0, (len(self.clustered_data[self.cluster_idxs[idx]])-1))]
-    
-    def __len__(self):
-        if self.use_cluster== False:
-            return len(self.data)
-        else:
-            return len(self.cluster_idxs)
-
-    def split(self, split):
-        '''
-        splits data on train/val/test
-
-        args:
-            split: One of "train" "val" "test"
-
-        returns:
-            subsection of data included in the train/val/test split
-        '''
-        if split.lower() == 'train':
-            tmp = self.df[self.df['split'] != 1]
-            return tmp[tmp['split'] != 2]
-
-        elif split.lower() == 'val':
-            return self.df[self.df['split'] == 1]
-
-        elif split.lower() == 'test':
-            return self.df[self.df['split'] == 2]
-
-
-class EncodedFastaDatasetWrapper(BaseWrapperDataset):
-    """
-    EncodedFastaDataset implemented as a wrapper
-    """
-
-    def __init__(self, dataset, dictionary, apply_bos=True, apply_eos=False):
-        '''
-        Options to apply bos and eos tokens.   will usually have eos already applied,
-        but won't have bos. Hence the defaults here.
-
-        args:
-            dataset: CSVDataset of data
-            dictionary: esmif1 dictionary used in code
-        '''
-
-        super().__init__(dataset)
-        self.dictionary = dictionary
-        self.apply_bos = apply_bos
-        self.apply_eos = apply_eos
-        '''
-        batchConverter git line 217 - https://github.com/facebookresearch/esm/blob/main/esm/inverse_folding/util.py
-        '''
-        self.batch_converter_coords = esm.inverse_folding.util.CoordBatchConverter(self.dictionary)
-
-    def __getitem__(self, idx):
-        '''
-        Get item from dataset:
-        returns:
-        {
-            'bind': torch.tensor (bind site)
-            'xyz_27': rf.inference.utils.process_target coords output
-            'mask_27': rf.inference.utils.process_target mask output
-            'seq': torch.tensor sequence
-        } to be post-proccessed in self.collate_dicts()
-
-        https://github.com/RosettaCommons/RFdiffusion/blob/main/rfdiffusion/inference/utils.py#L613
-        '''
-
-    
-        proccessed = process_target(f"/vast/og2114/rebase/20220519/output/{self.dataset[idx]['id']}/ranked_0.pdb")
-        print(proccessed.keys())
-        MAXLEN = 271
-        if torch.tensor(proccessed['xyz_27']).shape[0] >= MAXLEN:
-            start = random.randint(0, torch.tensor(proccessed['xyz_27']).shape[0] - (MAXLEN+1))
-            end = start + MAXLEN
-        else:
-            start = 0
-            end = -1
-        #import pdb; pdb.set_trace()
-        return {
-            'bind':torch.tensor( self.dictionary.encode(self.dataset[idx]['bind'])),
-            'xyz_27': torch.tensor(proccessed['xyz_27'])[start: end], #tensor of atomic coords
-            'mask_27': torch.tensor(proccessed['mask_27'][start: end]), #tensor of true/false for if the atoms exist
-            'seq': torch.tensor(proccessed['seq'][start:end]), #tensor of idx
-            'idx_pdb': proccessed['pdb_idx'][start:end],
-
-        }
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def collate_tensors(self, batch: List[torch.tensor], bos=False, eos=False):
-        '''
-        utility for collating tensors together, applying eos and bos if needed,
-        padding samples with self.dictionary.padding_idx as neccesary for length
-
-        input:
-            batch: [
-                torch.tensor shape[l1],
-                torch.tensor shape[l2],
-                ...
-            ]
-            bos: bool, apply bos (defaults to class init settings) - !!!BOS is practically <af2>, idx 34!!!
-            eos: bool, apply eos (defaults to class init settings)
-        output:
-            torch.tensor shape[len(input), max(l1, l2, ...)+bos+eos]
-        '''
-        
-        if eos == None:
-            eos = self.dictionary.eos()
-
-        batch_size = len(batch)
-        max_len = max(el.size(0) for el in batch)
-        tokens = torch.empty(
-            (
-                batch_size,
-                max_len + int(bos) + int(eos) # eos and bos
-            ),
-            dtype=torch.int64,
-        ).fill_(self.dictionary.padding_idx)
-
-        if bos:
-            tokens[:, 0] = self.dictionary.get_idx('<af2>')
-
-        for idx, el in enumerate(batch):
-            tokens[idx, int(bos):(el.size(0) + int(bos))] = el
-
-            # import pdb; pdb.set_trace()
-            if eos:
-                tokens[idx, el.size(0) + int(bos)] = self.dictionary.eos_idx
-
-        return tokens
-
-
-
-    def collater(self, batch):
-        if isinstance(batch, list) and torch.is_tensor(batch[0]):
-            return self.collate_tensors(batch)
-        else:
-            return self.collate_dicts(batch)
-    def collate_dicts(self, batch: List[Dict[str, torch.tensor]]):
-        '''
-        combine sequences of the form
-        [
-            {
-                'bind': torch.tensor (bind site)
-                'xyz_27': rf.inference.utils.process_target coords output
-                'mask_27': rf.inference.utils.process_target mask output
-                'seq': torch.tensor sequence
-                'idx_pdb': proccessed['idx_pdb'],
-            },
-            {
-                'bind': torch.tensor (bind site)
-                'xyz_27': rf.inference.utils.process_target coords output
-                'mask_27': rf.inference.utils.process_target mask output
-                'seq': torch.tensor sequence
-                'idx_pdb': proccessed['idx_pdb'],
-            },
-        ]
-        into a collated form:
-        {
-            'bind': torch.tensor (bind site)
-            'bos_bind': torch.tensor (bos+bind site)
-            
-            'seq': torch.tensor (protein sequence)
-            'xyz_27': torch.tensor (coords input to rf)
-            'mask_27' torch.tensor (mask input to rf)
-            'idx_pdb': list of idx_pdb in form [(chain, i) for i in len]
-        }
-        
-        applying the padding correctly to capture different lengths
-        '''
-
-        def select_by_key(lst: List[Dict], key):
-            return [el[key] for el in lst]
-
-
-
-        post_proccessed = {
-            'bind': self.collate_tensors(select_by_key(batch, 'bind'), eos=False),
-            
-            'seq': self.collate_tensors(select_by_key(batch, 'seq')),
-            'xyz_27': torch.stack(select_by_key(batch, 'xyz_27'), dim=0),
-            'mask_27': torch.stack(select_by_key(batch, 'mask_27'), dim=0),
-            'idx_pdb': select_by_key(batch, 'idx_pdb'),
-            
-        }
-        return post_proccessed
-
 
 
 
@@ -353,7 +74,7 @@ class RebaseT5(pl.LightningModule):
         self.model = self.sampler.model.train() #ROSETTAFold Model created by sampler
         self.model.to(self.device)
         from rfdiffusion.diffusion import Diffuser
-        
+        self.torsion_indices, self.torsion_can_flip, self.torsion_ref_angles = torsion_indices, torsion_can_flip, reference_angles
         self.diffuser = Diffuser(T=self.T,
 		    b_0=PARAMS['Bt0'], 
 		    b_T=PARAMS['Bt0'], 
@@ -425,14 +146,35 @@ class RebaseT5(pl.LightningModule):
         
         t = random.randint(0, self.T)
         if random.randint(0, 1) == 0 or t == self.T:
-            poses = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :].to('cpu'), batch['seq'][0].to('cpu'), batch['mask_27'][0][:, :14].to('cpu'), t_list=[t])
-            pose_t = poses[0][0]
+            poses, xyz_27 = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :], batch['seq'][0].to(batch['xyz_27'].device), batch['mask_27'][0][:, :14].to(batch['xyz_27'].device))
+            pose_t = poses[t].unsqueeze(0)
         
             #from model_runnsers Sampler._preprocess mostly
-            seq = torch.nn.functional.one_hot(batch['seq'][0], num_classes=22)
-            print('shape:', seq.shape)
-            L = seq.shape[0]
+            L = batch['seq'].shape[1]
+            seq = torch.nn.functional.one_hot(batch['seq'], num_classes=22)
+
+            t1d = torch.zeros(1, L, 23).to(batch['xyz_27'].device)
+            t1d[20] = 1
+            t1d[21] = 1 - (t/T)
+            padded_bind = torch.cat(batch['bind'], torch.zeros((1, L - batch['bind'].shape[1], batch['bind'].shape[2])).to(batch['xyz_27'].device))
+            t1d = torch.cat(t1d, padded_bind, dim=-1)
+            t2d = xyz_to_t2d(pose_t.unsqueeze(0))
+
+
+            
+
+            alpha, _, alpha_mask, _ = get_torsions(pose_t.reshape(-1, L, 27, 3), seq_tmp, self.torsion_indices, self.torsion_can_flip, self.torsion_ref_angles) #these wierd tensors are from rfdiffusion.utils
+            '''
+            alpha_mask = torch.logical_and(alpha_mask, ~torch.isnan(alpha[...,0]))
+            alpha[torch.isnan(alpha)] = 1.0
+            '''
+            alpha = alpha.reshape(1, -1, L, 20)
+            alpha_mask = alpha_mask.reshape(1, -1, L, 10)
+            alpha_t = torch.cat((alpha, alpha_mask), dim=-1)
+
+
             print('LENGTH = ', L)
+            #WORKING
             msa_masked = torch.zeros((1, 1, L, 48))
             msa_masked[:, :, :, :22] = seq[None, None]
             msa_masked[:, :, :, 22:44] = seq[None, None]
@@ -442,17 +184,18 @@ class RebaseT5(pl.LightningModule):
             msa_full[:, :, :, :22] = seq[None, None]
             msa_full[:, :, 0, 23] = 1.0
             msa_full[:, :, -1, 24] = 1.0
-            t1d = torch.zeros((1, 1, L - batch['bind'].shape[1], 22))
-            t1d = torch.cat((torch.unsqueeze(torch.unsqueeze(torch.nn.functional.one_hot(batch['bind'][0], num_classes=22), 0), 0).to('cpu'), t1d), dim=2)
-            t2d = xyz_to_t2d(torch.unsqueeze(torch.unsqueeze(pose_t, 0), 0))
+
+
+
+
+            
             seq_tmp = t1d[..., :-1].argmax(dim=-1).reshape(-1, L)
             
-            alpha, _, alpha_mask, _ = get_torsions(pose_t.reshape(-1, L, 27, 3), seq_tmp, torch.full((22, 4, 4), 0), torch.full((22, 10), False, dtype=torch.bool), torch.ones((22, 3, 2))) #these wierd tensors are from rfdiffusion.utils
-            alpha_mask = torch.logical_and(alpha_mask, ~torch.isnan(alpha[...,0]))
-            alpha[torch.isnan(alpha)] = 1.0
-            alpha = alpha.reshape(1, -1, L, 10, 2)
-            alpha_mask = alpha_mask.reshape(1, -1, L, 10, 1)
-            alpha_t = torch.cat((alpha, alpha_mask), dim=-1).reshape(1, -1, L, 30)
+
+
+
+
+            
             idx_pdb =torch.tensor([batch['idx_pdb'][0][i][1]-1 for i in range(len(batch['idx_pdb'][0]))]).unsqueeze(0)
             seq_in = torch.zeros((L, 22))
             seq_in[:, 21] = 1.0
@@ -1072,7 +815,7 @@ class RebaseT5(pl.LightningModule):
             CSVDataset(cs, 'train', clust=self.cfg.model.sample_by_cluster),
 
             self.ifalphabet,
-            apply_eos=True,
+            apply_eos=False,
             apply_bos=False,
         )
 
@@ -1094,7 +837,7 @@ class RebaseT5(pl.LightningModule):
         dataset = EncodedFastaDatasetWrapper(
             CSVDataset(cs, 'val', clust=self.cfg.model.sample_by_cluster),
             self.ifalphabet,
-            apply_eos=True,
+            apply_eos=False,
             apply_bos=False,
         )
         self.dataset = dataset
