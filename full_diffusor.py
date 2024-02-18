@@ -31,7 +31,7 @@ from rfdiffusion.inference.utils import Denoise
 from rfdiffusion.inference.utils import process_target
 from rfdiffusion.chemical import aa2long aa2longalt, torsions, ideal_coords
 
-from .diffusor_utils import PARAMS, RFdict, neuc_dict, reset_all_weights, CSVDataset,EncodedFastaDatasetWrapper
+from .diffusor_utils import PARAMS, RFdict, neuc_dict, reset_all_weights, CSVDataset,EncodedFastaDatasetWrapper, ldiffusion
 from constants import RFdict
         
 
@@ -162,47 +162,30 @@ class RebaseT5(pl.LightningModule):
 
 
             
-
+            seq_tmp = torch.full((1, L), 21)
             alpha, _, alpha_mask, _ = get_torsions(pose_t.reshape(-1, L, 27, 3), seq_tmp, self.torsion_indices, self.torsion_can_flip, self.torsion_ref_angles) #these wierd tensors are from rfdiffusion.utils
-            '''
             alpha_mask = torch.logical_and(alpha_mask, ~torch.isnan(alpha[...,0]))
-            alpha[torch.isnan(alpha)] = 1.0
-            '''
-            alpha = alpha.reshape(1, -1, L, 20)
-            alpha_mask = alpha_mask.reshape(1, -1, L, 10)
-            alpha_t = torch.cat((alpha, alpha_mask), dim=-1)
+            alpha[torch.isnan(alpha)] = 0.0
+            alpha = alpha.reshape(1,-1,L,10,2)
+            alpha_mask = alpha_mask.reshape(1,-1,L,10,1)
+            alpha_t = torch.cat((alpha, alpha_mask), dim=-1).reshape(1, -1, L, 30)
 
 
             print('LENGTH = ', L)
-            #WORKING
+            
+            seq_in = torch.nn.functional.one_hot(seq_tmp)
             msa_masked = torch.zeros((1, 1, L, 48))
-            msa_masked[:, :, :, :22] = seq[None, None]
-            msa_masked[:, :, :, 22:44] = seq[None, None]
+            msa_masked[:, :, :, :22] = seq_in[None, None]
+            msa_masked[:, :, :, 22:44] = seq_in[None, None]
             msa_masked[:, :, 0, 46] = 1.0
             msa_masked[:, :, -1, 47] = 1.0
             msa_full = torch.zeros((1, 1, L, 25))
             msa_full[:, :, :, :22] = seq[None, None]
             msa_full[:, :, 0, 23] = 1.0
             msa_full[:, :, -1, 24] = 1.0
-
-
-
-
-            
-            seq_tmp = t1d[..., :-1].argmax(dim=-1).reshape(-1, L)
-            
-
-
-
-
-            
             idx_pdb =torch.tensor([batch['idx_pdb'][0][i][1]-1 for i in range(len(batch['idx_pdb'][0]))]).unsqueeze(0)
-            seq_in = torch.zeros((L, 22))
-            seq_in[:, 21] = 1.0
-            seq_in = torch.unsqueeze(torch.tensor([21 for i in range(L)]), dim=0)
-            seq_in = torch.nn.functional.one_hot(seq_in, num_classes=22).float()
             mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
-            print(seq_in.shape)
+            
 
             pose_t = pose_t.to(batch['bind'].device)
             t1d = t1d.to(batch['bind'].device)
@@ -218,6 +201,7 @@ class RebaseT5(pl.LightningModule):
             xyz_t = torch.clone(pose_t)
             xyz_t = xyz_t[None, None]
             xyz_t = torch.cat((xyz_t[:, :14, :], torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3)
+            #WORKING
             print("msa_masked = ", msa_masked.shape)
             print(msa_full.shape)
             print(seq_in.shape)
@@ -230,7 +214,7 @@ class RebaseT5(pl.LightningModule):
             print('MASK_27 = ', mask.shape) 
             #import pdb; pdb.set_trace()
             #msa_prev, pair_prev, px0, state_prev, alpha, logits, plddt = self.model(
-            output = self.model(
+            logits, logits_aa, logits_exp, xyz_pred, alpha_s, lddt = self.model(
                     msa_masked,
                     msa_full,
                     seq_in,
@@ -247,8 +231,10 @@ class RebaseT5(pl.LightningModule):
                     state_prev=None,
                     t=torch.tensor(t),
                     motif_mask=mask,
-                    return_infer=True,
+                    
                     )
+            logits_dist, logits_omega, logits_theta, logits_phi = logits
+            loss = ldiffusion(xyz_27, xyz_pred[-1], logits_dist, logits_omega, logits_theta, logits_phi) #check to make sure xyz_pred last structure is -1
             _, px0 = self.sampler.allatom(torch.argmax(seq_in, dim=-1), output[2], output[4])
 
             alpha_0, _, alpha_mask_0, _ = get_torsions(batch['xyz_27'].reshape(-1, L, 27, 3), batch['seq'], torch.full((22, 4, 4), 0).to(batch['bind'].device), torch.full((22, 10), False, dtype=torch.bool).to(batch['bind'].device), torch.ones((22, 3, 2)).to(batch['bind'].device)) #these wierd tensors are from rfdiffusion.utils
@@ -880,20 +866,6 @@ class RebaseT5(pl.LightningModule):
         for tok in seq:
             newseq += str(self.ifalphabet.get_tok(tok))
         return newseq
-
-    def loss_trans(self, x, x_pred, dclamp=10):
-        distances = torch.abs(x - x_pred)
-        distances = torch.clamp(distances, max=dclamp)
-        distances = torch.square(distances)
-        return torch.mean(distances)
-    def loss_rot(self, alpha, alpha_pred):
-        l = torch.abs(alpha - alpha_pred)
-        l = torch.square(l)
-        return torch.mean(l)
-    def lframe(self, x_pred, x, alpha, alpha_pred, decay, wtrans, wrot, T):
-        return torch.tensor(decay**(self.T - T), device=x.device) * (torch.tensor(wtrans, device=x.device) * self.loss_trans(x, x_pred) + torch.tensor(wrot, device = alpha.device) * self.loss_rot(alpha, alpha_pred))
-    
-
 
 
 
