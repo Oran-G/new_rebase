@@ -79,7 +79,7 @@ def l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27): #loss as d
         torch.nn.functional.cross_entropy(logits_omega, omega) + 
         torch.nn.functional.cross_entropy(logits_theta, theta) +
         torch.nn.functional.cross_entropy(logits_phi,  phi)
-def ldiffusion(xyz_27, xyz_27_preds, logits_dist, logits_omega, logits_theta, logits_phi, wtrans, wrot, dclamp, gamma, w2d):
+def ldiffusion(xyz_27, xyz_27_preds, logits_dist, logits_omega, logits_theta, logits_phi, wtrans=PARAMS['wtrans'], wrot=PARAMS['wrot'], dclamp=PARAMS['dclamp'], gamma=PARAMS['gamma'], w2d=PARAMS['w2d']):
     return lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma) + 
         (w2d*l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27))
 
@@ -278,6 +278,55 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
     def __len__(self):
         return len(self.dataset)
 
+    def collate_tensors(self, batch: List[torch.tensor], bos=False, eos=False):
+        '''
+        utility for collating tensors together, applying eos and bos if needed,
+        padding samples with self.dictionary.padding_idx as neccesary for length
+
+        input:
+            batch: [
+                torch.tensor shape[l1],
+                torch.tensor shape[l2],
+                ...
+            ]
+            bos: bool, apply bos (defaults to class init settings) - !!!BOS is practically <af2>, idx 34!!!
+            eos: bool, apply eos (defaults to class init settings)
+        output:
+            torch.tensor shape[len(input), max(l1, l2, ...)+bos+eos]
+        '''
+        
+        if eos == None:
+            eos = self.dictionary.eos()
+
+        batch_size = len(batch)
+        max_len = max(el.size(0) for el in batch)
+        tokens = torch.empty(
+            (
+                batch_size,
+                max_len + int(bos) + int(eos) # eos and bos
+            ),
+            dtype=torch.int64,
+        ).fill_(self.dictionary.padding_idx)
+
+        if bos:
+            tokens[:, 0] = self.dictionary.get_idx('<af2>')
+
+        for idx, el in enumerate(batch):
+            tokens[idx, int(bos):(el.size(0) + int(bos))] = el
+
+            # import pdb; pdb.set_trace()
+            if eos:
+                tokens[idx, el.size(0) + int(bos)] = self.dictionary.eos_idx
+
+        return tokens
+
+
+
+    def collater(self, batch):
+        if isinstance(batch, list) and torch.is_tensor(batch[0]):
+            return self.collate_tensors(batch)
+        else:
+            return self.collate_dicts(batch)
     def collate_dicts(self, batch: List[Dict[str, torch.tensor]]):
         '''
         combine sequences of the form
@@ -317,11 +366,11 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
 
         ##
         post_proccessed = {
-            'bind': batch['bind'][0],
-            'seq': batch['seq'][0],
-            'xyz_27': batch['xyz_27'][0],
-            'mask_27': batch['mask_27'][0],
-            'idx_pdb': batch['idx_pdb'][0],
+            'bind': torch.stack(batch['bind']),
+            'seq': torch.stack(batch['seq']),
+            'xyz_27': torch.stack(batch['xyz_27']),
+            'mask_27': torch.stack(batch['mask_27']),
+            'idx_pdb': torch.stack(batch['idx_pdb']),
             
         }
         return post_proccessed

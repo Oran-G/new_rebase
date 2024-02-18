@@ -144,325 +144,15 @@ class RebaseT5(pl.LightningModule):
 
         
         
-        t = random.randint(0, self.T)
+        t_global = random.randint(0, self.T)
         if random.randint(0, 1) == 0 or t == self.T:
-            poses, xyz_27 = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :], batch['seq'][0].to(batch['xyz_27'].device), batch['mask_27'][0][:, :14].to(batch['xyz_27'].device))
-            pose_t = poses[t].unsqueeze(0)
-        
-            #from model_runnsers Sampler._preprocess mostly
-            L = batch['seq'].shape[1]
-            seq = torch.nn.functional.one_hot(batch['seq'], num_classes=22)
-
-            t1d = torch.zeros(1, L, 23).to(batch['xyz_27'].device)
-            t1d[20] = 1
-            t1d[21] = 1 - (t/T)
-            padded_bind = torch.cat(batch['bind'], torch.zeros((1, L - batch['bind'].shape[1], batch['bind'].shape[2])).to(batch['xyz_27'].device))
-            t1d = torch.cat(t1d, padded_bind, dim=-1)
-            t2d = xyz_to_t2d(pose_t.unsqueeze(0))
-
-
-            
-            seq_tmp = torch.full((1, L), 21)
-            alpha, _, alpha_mask, _ = get_torsions(pose_t.reshape(-1, L, 27, 3), seq_tmp, self.torsion_indices, self.torsion_can_flip, self.torsion_ref_angles) #these wierd tensors are from rfdiffusion.utils
-            alpha_mask = torch.logical_and(alpha_mask, ~torch.isnan(alpha[...,0]))
-            alpha[torch.isnan(alpha)] = 0.0
-            alpha = alpha.reshape(1,-1,L,10,2)
-            alpha_mask = alpha_mask.reshape(1,-1,L,10,1)
-            alpha_t = torch.cat((alpha, alpha_mask), dim=-1).reshape(1, -1, L, 30)
-
-
-            print('LENGTH = ', L)
-            
-            seq_in = torch.nn.functional.one_hot(seq_tmp)
-            msa_masked = torch.zeros((1, 1, L, 48))
-            msa_masked[:, :, :, :22] = seq_in[None, None]
-            msa_masked[:, :, :, 22:44] = seq_in[None, None]
-            msa_masked[:, :, 0, 46] = 1.0
-            msa_masked[:, :, -1, 47] = 1.0
-            msa_full = torch.zeros((1, 1, L, 25))
-            msa_full[:, :, :, :22] = seq[None, None]
-            msa_full[:, :, 0, 23] = 1.0
-            msa_full[:, :, -1, 24] = 1.0
-            idx_pdb =torch.tensor([batch['idx_pdb'][0][i][1]-1 for i in range(len(batch['idx_pdb'][0]))]).unsqueeze(0)
-            mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
-            
-
-            pose_t = pose_t.to(batch['bind'].device)
-            t1d = t1d.to(batch['bind'].device)
-            t2d = t2d.to(batch['bind'].device)
-            alpha_t = alpha_t.to(batch['bind'].device)
-            pose_t = pose_t.to(batch['bind'].device)
-            seq_in = seq_in.to(batch['bind'].device)
-            seq = seq.to(batch['bind'].device)
-            idx_pdb = idx_pdb.to(batch['bind'].device)
-            msa_masked = msa_masked.to(batch['bind'].device)
-            msa_full = msa_full.to(batch['bind'].device)
-
-            xyz_t = torch.clone(pose_t)
-            xyz_t = xyz_t[None, None]
-            xyz_t = torch.cat((xyz_t[:, :14, :], torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3)
-            #WORKING
-            print("msa_masked = ", msa_masked.shape)
-            print(msa_full.shape)
-            print(seq_in.shape)
-            print(xyz_t.squeeze(dim=0).shape)
-            print(idx_pdb.shape)
-            print(t1d.shape)
-            print(t2d.shape)
-            print(xyz_t.shape)
-            print(alpha_t.shape)
-            print('MASK_27 = ', mask.shape) 
-            #import pdb; pdb.set_trace()
-            #msa_prev, pair_prev, px0, state_prev, alpha, logits, plddt = self.model(
-            logits, logits_aa, logits_exp, xyz_pred, alpha_s, lddt = self.model(
-                    msa_masked,
-                    msa_full,
-                    seq_in,
-                    xyz_t.squeeze(dim=0),#[:, :14, :]
-                    #pose_t,
-                    idx_pdb,
-                    t1d=t1d,
-                    t2d=t2d,
-                    #xyz_t=pose_t.unsqueeze(0),
-                    xyz_t=xyz_t, 
-                    alpha_t=alpha_t,
-                    msa_prev=None,
-                    pair_prev=None,
-                    state_prev=None,
-                    t=torch.tensor(t),
-                    motif_mask=mask,
-                    
-                    )
-            logits_dist, logits_omega, logits_theta, logits_phi = logits
-            loss = ldiffusion(xyz_27, xyz_pred[-1], logits_dist, logits_omega, logits_theta, logits_phi) #check to make sure xyz_pred last structure is -1
-            _, px0 = self.sampler.allatom(torch.argmax(seq_in, dim=-1), output[2], output[4])
-
-            alpha_0, _, alpha_mask_0, _ = get_torsions(batch['xyz_27'].reshape(-1, L, 27, 3), batch['seq'], torch.full((22, 4, 4), 0).to(batch['bind'].device), torch.full((22, 10), False, dtype=torch.bool).to(batch['bind'].device), torch.ones((22, 3, 2)).to(batch['bind'].device)) #these wierd tensors are from rfdiffusion.utils
-            alpha_mask_0 = torch.logical_and(alpha_mask_0, ~torch.isnan(alpha_0[...,0]))
-            alpha_0[torch.isnan(alpha_0)] = 1.0
-            alpha_0 = alpha_0.reshape(1, -1, L, 10, 2)
-            alpha_mask_0 = alpha_mask_0.reshape(1, -1, L, 10, 1)
-            alpha_0 = torch.cat((alpha_0, alpha_mask_0), dim=-1).reshape(1, -1, L, 30)
-            #import pdb; pdb.set_trace()
-            #loss = lframe(px0[:, :, :14, :], batch['xyz_27'][:, :, :14, :], alpha_0, output[4], .99, 1, 1, t)
-            loss = self.lframe(px0[:, :, :14, :], batch['xyz_27'][:, :, :14, :], alpha_0, torch.cat((output[4].reshape(1, -1, L, 10, 2), alpha_mask_0), dim=-1).reshape(1, -1, L, 30), .99, 1, 1, t)
-       
-       
-       
-       
-       
+            loss, _ = self.ministep(batch, t_global)
         else:
-            poses = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :].to('cpu'), batch['seq'][0].to('cpu'), batch['mask_27'][0][:, :14].to('cpu'), t_list=[t, t+1])
-            pose_t = poses[0][0]
-            pose_t_1=poses[0][1]
-            #from model_runnsers Sampler._preprocess mostly
-            seq = torch.nn.functional.one_hot(batch['seq'][0], num_classes=22)
-            print('shape:', seq.shape)
-            L = seq.shape[0]
-            print('LENGTH = ', L)
-            #import pdb; pdb.set_trace()
-
-            msa_masked = torch.zeros((1, 1, L, 48))
-            msa_masked[:, :, :, :22] = seq[None, None]
-            msa_masked[:, :, :, 22:44] = seq[None, None]
-            msa_masked[:, :, 0, 46] = 1.0
-            msa_masked[:, :, -1, 47] = 1.0
-            msa_full = torch.zeros((1, 1, L, 25))
-            msa_full[:, :, :, :22] = seq[None, None]
-            msa_full[:, :, 0, 23] = 1.0
-            msa_full[:, :, -1, 24] = 1.0
-            t1d = torch.zeros((1, 1, L - batch['bind'].shape[1], 22))
-
-            t1d = torch.cat((torch.unsqueeze(torch.unsqueeze(torch.nn.functional.one_hot(batch['bind'][0], num_classes=22), 0), 0).to('cpu'), t1d), dim=2)
-
-            t2d = xyz_to_t2d(torch.unsqueeze(torch.unsqueeze(pose_t, 0), 0))
-            seq_tmp = t1d[..., :-1].argmax(dim=-1).reshape(-1, L)
-            alpha, _, alpha_mask, _ = get_torsions(pose_t_1.reshape(-1, L, 27, 3), seq_tmp, torch.full((22, 4, 4), 0), torch.full((22, 10), False, dtype=torch.bool), torch.ones((22, 3, 2))) #these wierd tensors are from rfdiffusion.utils
-            alpha_mask = torch.logical_and(alpha_mask, ~torch.isnan(alpha[...,0]))
-            alpha[torch.isnan(alpha)] = 1.0
-            alpha = alpha.reshape(1, -1, L, 10, 2)
-            alpha_mask = alpha_mask.reshape(1, -1, L, 10, 1)
-            alpha_t = torch.cat((alpha, alpha_mask), dim=-1).reshape(1, -1, L, 30)
-            idx_pdb =torch.tensor([batch['idx_pdb'][0][i][1]-1 for i in range(len(batch['idx_pdb'][0]))]).unsqueeze(0)
-            seq_in = torch.zeros((L, 22))
-            seq_in[:, 21] = 1.0
-            seq_in = torch.unsqueeze(torch.tensor([21 for i in range(L)]), dim=0)
-            seq_in = torch.nn.functional.one_hot(seq_in, num_classes=22).float()
-            mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
-            print(seq_in.shape)
-
-
-            pose_t_1 = pose_t_1.to(batch['bind'].device)
-            t1d = t1d.to(batch['bind'].device)
-            t2d = t2d.to(batch['bind'].device)
-            alpha_t = alpha_t.to(batch['bind'].device)
-            pose_t_1 = pose_t_1.to(batch['bind'].device)
-            seq_in = seq_in.to(batch['bind'].device)
-            seq = seq.to(batch['bind'].device)
-            idx_pdb = idx_pdb.to(batch['bind'].device)
-            msa_masked = msa_masked.to(batch['bind'].device)
-            msa_full = msa_full.to(batch['bind'].device)
-
-            xyz_t_1 = torch.clone(pose_t_1)
-            xyz_t_1 = xyz_t_1[None, None]
-            xyz_t_1 = torch.cat((xyz_t_1[:, :14, :], torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3)
-            print("msa_masked = ", msa_masked.shape)
-            print(msa_full.shape)
-            print(seq_in.shape)
-            print(xyz_t_1.squeeze(dim=0).shape)
-            print(idx_pdb.shape)
-            print(t1d.shape)
-            print(t2d.shape)
-            print(xyz_t_1.shape)
-            print(alpha_t.shape)
-            print('MASK_27 = ', mask.shape) 
-            #msa_prev, pair_prev, px0, state_prev, alpha, logits, plddt = self.model(
-            
-            with torch.no_grad():    
-                output = self.model(
-                        msa_masked,
-                        msa_full,
-                        seq_in,
-                        xyz_t_1.squeeze(dim=0),#[:, :14, :]
-                        #pose_t,
-                        idx_pdb,
-                        t1d=t1d,
-                        t2d=t2d,
-                        #xyz_t=pose_t.unsqueeze(0),
-                        xyz_t=xyz_t_1, 
-                        alpha_t=alpha_t,
-                        msa_prev=None,
-                        pair_prev=None,
-                        state_prev=None,
-                        t=torch.tensor(t+1),
-                        motif_mask=mask,
-                        return_infer=True,
-                        )
-
+            with torch.no_grad():
+                _, x_prev = self.ministep(batch, t_gloabl + 1)
             torch.cuda.empty_cache()
-            msa_prev = output[0]
-            pair_prev = output[1]
-            state_prev = output[3]
-
-            
-
-
-
-            
-            #from model_runnsers Sampler._preprocess mostly
-            seq = torch.nn.functional.one_hot(batch['seq'][0], num_classes=22)
-            print('shape:', seq.shape)
-            L = seq.shape[0]
-            print('LENGTH = ', L)
-         
-
-            msa_masked = torch.zeros((1, 1, L, 48))
-            msa_masked[:, :, :, :22] = seq[None, None]
-            msa_masked[:, :, :, 22:44] = seq[None, None]
-            msa_masked[:, :, 0, 46] = 1.0
-            msa_masked[:, :, -1, 47] = 1.0
-            msa_full = torch.zeros((1, 1, L, 25))
-            msa_full[:, :, :, :22] = seq[None, None]
-            msa_full[:, :, 0, 23] = 1.0
-            msa_full[:, :, -1, 24] = 1.0
-            t1d = torch.zeros((1, 1, L - batch['bind'].shape[1], 22))
-            t1d = torch.cat((torch.unsqueeze(torch.unsqueeze(torch.nn.functional.one_hot(batch['bind'][0], num_classes=22), 0), 0).to('cpu'), t1d), dim=2)
-
-            t2d = xyz_to_t2d(torch.unsqueeze(torch.unsqueeze(pose_t, 0), 0))
-            seq_tmp = t1d[..., :-1].argmax(dim=-1).reshape(-1, L)
-            
-            alpha, _, alpha_mask, _ = get_torsions(pose_t.reshape(-1, L, 27, 3), seq_tmp, torch.full((22, 4, 4), 0), torch.full((22, 10), False, dtype=torch.bool), torch.ones((22, 3, 2))) #these wierd tensors are from rfdiffusion.utils
-            alpha_mask = torch.logical_and(alpha_mask, ~torch.isnan(alpha[...,0]))
-            alpha[torch.isnan(alpha)] = 1.0
-            alpha = alpha.reshape(1, -1, L, 10, 2)
-            alpha_mask = alpha_mask.reshape(1, -1, L, 10, 1)
-            alpha_t = torch.cat((alpha, alpha_mask), dim=-1).reshape(1, -1, L, 30)
-            idx_pdb =torch.tensor([batch['idx_pdb'][0][i][1]-1 for i in range(len(batch['idx_pdb'][0]))]).unsqueeze(0)
-            seq_in = torch.zeros((L, 22))
-            seq_in[:, 21] = 1.0
-            seq_in = torch.unsqueeze(torch.tensor([21 for i in range(L)]), dim=0)
-            seq_in = torch.nn.functional.one_hot(seq_in, num_classes=22).float()
-            mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
-            print(seq_in.shape)
-            #import pdb; pdb.set_trace()
-
-            pose_t = pose_t.to(batch['bind'].device)
-            t1d = t1d.to(batch['bind'].device)
-            t2d = t2d.to(batch['bind'].device)
-            alpha_t = alpha_t.to(batch['bind'].device)
-            pose_t = pose_t.to(batch['bind'].device)
-            seq_in = seq_in.to(batch['bind'].device)
-            seq = seq.to(batch['bind'].device)
-            idx_pdb = idx_pdb.to(batch['bind'].device)
-            msa_masked = msa_masked.to(batch['bind'].device)
-            msa_full = msa_full.to(batch['bind'].device)
-
-            xyz_t = torch.clone(pose_t)
-            xyz_t = xyz_t[None, None]
-            xyz_t = torch.cat((xyz_t[:, :14, :], torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3)
-            print("msa_masked = ", msa_masked.shape)
-            print(msa_full.shape)
-            print(seq_in.shape)
-            print(xyz_t.squeeze(dim=0).shape)
-            print(idx_pdb.shape)
-            print(t1d.shape)
-            print(t2d.shape)
-            print(xyz_t.shape)
-            print(alpha_t.shape)
-            print('MASK_27 = ', mask.shape) 
-            #import pdb; pdb.set_trace()
-            #msa_prev, pair_prev, px0, state_prev, alpha, logits, plddt = self.model(
-            output = self.model(
-                    msa_masked,
-                    msa_full,
-                    seq_in,
-                    xyz_t.squeeze(dim=0),#[:, :14, :]
-                    #pose_t,
-                    idx_pdb,
-                    t1d=t1d,
-                    t2d=t2d,
-                    #xyz_t=pose_t.unsqueeze(0),
-                    xyz_t=xyz_t, 
-                    alpha_t=alpha_t,
-                    msa_prev=msa_prev,
-                    pair_prev=pair_prev,
-                    state_prev=state_prev,
-                    t=torch.tensor(t),
-                    motif_mask=mask,
-                    return_infer=True,
-                    )
-            _, px0 = self.sampler.allatom(torch.argmax(seq_in, dim=-1), output[2], output[4])
-            #import pdb; pdb.set_trace()
-            alpha_0, _, alpha_mask_0, _ = get_torsions(batch['xyz_27'].reshape(-1, L, 27, 3), batch['seq'], torch.full((22, 4, 4), 0).to(batch['bind'].device), torch.full((22, 10), False, dtype=torch.bool).to(batch['bind'].device), torch.ones((22, 3, 2)).to(batch['bind'].device)) #these wierd tensors are from rfdiffusion.utils
-            alpha_mask_0 = torch.logical_and(alpha_mask_0, ~torch.isnan(alpha_0[...,0]))
-            alpha_0[torch.isnan(alpha_0)] = 1.0
-            alpha_0 = alpha_0.reshape(1, -1, L, 10, 2)
-            alpha_mask_0 = alpha_mask_0.reshape(1, -1, L, 10, 1)
-            alpha_0 = torch.cat((alpha_0, alpha_mask_0), dim=-1).reshape(1, -1, L, 30)
-
-            #import pdb; pdb.set_trace()
-            #loss = lframe(px0[:, :, :14, :], batch['xyz_27'][:, :, :14, :], alpha_0, output[4], .99, 1, 1, t)
-            loss = self.lframe(px0[:, :, :14, :], batch['xyz_27'][:, :, :14, :], alpha_0, torch.cat((output[4].reshape(1, -1, L, 10, 2), alpha_mask_0), dim=-1).reshape(1, -1, L, 30), .99, 1, 1, t)
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-       
+            loss, _ = self.ministep(batch, t_global, x_prev)
         self.log('train_loss', float(loss.item())/(.99**(self.T - t)), on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        #self.log('train_acc',  , on_step=True, on_epoch=True, prog_bar=False, logger=True) #accuracy using torchmetrics accuracy
-        #self.log('length', ,  on_step=True,  logger=True) # length of prediction
-        #self.log('train_time', time.time()- start_time, on_step=True, on_epoch=True, prog_bar=True, logger=True) # step time
-
         return {
             'loss': loss,
             'batch_size': batch['seq'].size(0)
@@ -477,317 +167,18 @@ class RebaseT5(pl.LightningModule):
         with torch.no_grad():
             t = random.randint(0, self.T)
             if random.randint(0, 1) == 0 or t == self.T:
-                poses = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :].to('cpu'), batch['seq'][0].to('cpu'), batch['mask_27'][0][:, :14].to('cpu'), t_list=[t])
-                pose_t = poses[0][0]
-            
-                #from model_runnsers Sampler._preprocess mostly
-                seq = torch.nn.functional.one_hot(batch['seq'][0], num_classes=22)
-                print('shape:', seq.shape)
-                #import pdb; pdb.set_trace()
-                L = seq.shape[0]
-                print('LENGTH = ', L)
-
-
-                msa_masked = torch.zeros((1, 1, L, 48))
-                msa_masked[:, :, :, :22] = seq[None, None]
-                msa_masked[:, :, :, 22:44] = seq[None, None]
-                msa_masked[:, :, 0, 46] = 1.0
-                msa_masked[:, :, -1, 47] = 1.0
-                msa_full = torch.zeros((1, 1, L, 25))
-                msa_full[:, :, :, :22] = seq[None, None]
-                msa_full[:, :, 0, 23] = 1.0
-                msa_full[:, :, -1, 24] = 1.0
-                t1d = torch.zeros((1, 1, L - batch['bind'].shape[1], 22))
-                #import pdb; pdb.set_trace()
-                t1d = torch.cat((torch.unsqueeze(torch.unsqueeze(torch.nn.functional.one_hot(batch['bind'][0], num_classes=22), 0), 0).to('cpu'), t1d), dim=2)
-                #t1d = torch.cat((t1d, torch.zeros((1, 1, L, 5))), dim=-1)
-                t2d = xyz_to_t2d(torch.unsqueeze(torch.unsqueeze(pose_t, 0), 0))
-                seq_tmp = t1d[..., :-1].argmax(dim=-1).reshape(-1, L)
-                
-                alpha, _, alpha_mask, _ = get_torsions(pose_t.reshape(-1, L, 27, 3), seq_tmp, torch.full((22, 4, 4), 0), torch.full((22, 10), False, dtype=torch.bool), torch.ones((22, 3, 2))) #these wierd tensors are from rfdiffusion.utils
-                alpha_mask = torch.logical_and(alpha_mask, ~torch.isnan(alpha[...,0]))
-                alpha[torch.isnan(alpha)] = 1.0
-                alpha = alpha.reshape(1, -1, L, 10, 2)
-                alpha_mask = alpha_mask.reshape(1, -1, L, 10, 1)
-                alpha_t = torch.cat((alpha, alpha_mask), dim=-1).reshape(1, -1, L, 30)
-                idx_pdb =torch.tensor([batch['idx_pdb'][0][i][1]-1 for i in range(len(batch['idx_pdb'][0]))]).unsqueeze(0)
-                seq_in = torch.zeros((L, 22))
-                seq_in[:, 21] = 1.0
-                seq_in = torch.unsqueeze(torch.tensor([21 for i in range(L)]), dim=0)
-                seq_in = torch.nn.functional.one_hot(seq_in, num_classes=22).float()
-                mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
-                print(seq_in.shape)
-                #import pdb; pdb.set_trace()
-
-                pose_t = pose_t.to(batch['bind'].device)
-                t1d = t1d.to(batch['bind'].device)
-                t2d = t2d.to(batch['bind'].device)
-                alpha_t = alpha_t.to(batch['bind'].device)
-                pose_t = pose_t.to(batch['bind'].device)
-                seq_in = seq_in.to(batch['bind'].device)
-                seq = seq.to(batch['bind'].device)
-                idx_pdb = idx_pdb.to(batch['bind'].device)
-                msa_masked = msa_masked.to(batch['bind'].device)
-                msa_full = msa_full.to(batch['bind'].device)
-
-                xyz_t = torch.clone(pose_t)
-                xyz_t = xyz_t[None, None]
-                xyz_t = torch.cat((xyz_t[:, :14, :], torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3)
-                print("msa_masked = ", msa_masked.shape)
-                print(msa_full.shape)
-                print(seq_in.shape)
-                print(xyz_t.squeeze(dim=0).shape)
-                print(idx_pdb.shape)
-                print(t1d.shape)
-                print(t2d.shape)
-                print(xyz_t.shape)
-                print(alpha_t.shape)
-                print('MASK_27 = ', mask.shape) 
-                #import pdb; pdb.set_trace()
-                #msa_prev, pair_prev, px0, state_prev, alpha, logits, plddt = self.model(
-                output = self.model(
-                        msa_masked,
-                        msa_full,
-                        seq_in,
-                        xyz_t.squeeze(dim=0),#[:, :14, :]
-                        #pose_t,
-                        idx_pdb,
-                        t1d=t1d,
-                        t2d=t2d,
-                        #xyz_t=pose_t.unsqueeze(0),
-                        xyz_t=xyz_t, 
-                        alpha_t=alpha_t,
-                        msa_prev=None,
-                        pair_prev=None,
-                        state_prev=None,
-                        t=torch.tensor(t),
-                        motif_mask=mask,
-                        return_infer=True,
-                        )
-                _, px0 = self.sampler.allatom(torch.argmax(seq_in, dim=-1), output[2], output[4])
-
-                alpha_0, _, alpha_mask_0, _ = get_torsions(batch['xyz_27'].reshape(-1, L, 27, 3), batch['seq'], torch.full((22, 4, 4), 0).to(batch['bind'].device), torch.full((22, 10), False, dtype=torch.bool).to(batch['bind'].device), torch.ones((22, 3, 2)).to(batch['bind'].device)) #these wierd tensors are from rfdiffusion.utils
-                alpha_mask_0 = torch.logical_and(alpha_mask_0, ~torch.isnan(alpha_0[...,0]))
-                alpha_0[torch.isnan(alpha_0)] = 1.0
-                alpha_0 = alpha_0.reshape(1, -1, L, 10, 2)
-                alpha_mask_0 = alpha_mask_0.reshape(1, -1, L, 10, 1)
-                alpha_0 = torch.cat((alpha_0, alpha_mask_0), dim=-1).reshape(1, -1, L, 30)
-                #import pdb; pdb.set_trace()
-                #loss = lframe(px0[:, :, :14, :], batch['xyz_27'][:, :, :14, :], alpha_0, output[4], .99, 1, 1, t)
-                loss = self.lframe(px0[:, :, :14, :], batch['xyz_27'][:, :, :14, :], alpha_0, torch.cat((output[4].reshape(1, -1, L, 10, 2), alpha_mask_0), dim=-1).reshape(1, -1, L, 30), .99, 1, 1, t)
-        
-        
-        
-        
-        
+                loss, _ = self.ministep(batch, t_global)
             else:
-                poses = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :].to('cpu'), batch['seq'][0].to('cpu'), batch['mask_27'][0][:, :14].to('cpu'), t_list=[t, t+1])
-                pose_t = poses[0][0]
-                pose_t_1=poses[0][1]
-                #from model_runnsers Sampler._preprocess mostly
-                seq = torch.nn.functional.one_hot(batch['seq'][0], num_classes=22)
-                print('shape:', seq.shape)
-                #import pdb; pdb.set_trace()
-                L = seq.shape[0]
-                print('LENGTH = ', L)
-                #samp_init = self.sampler.sample_init()
-                #pre = self.sampler._preprocess(torch.zeros((L, 22)), pose_t_1, t)
-                #print(pre)
-                #import pdb; pdb.set_trace()
-
-                msa_masked = torch.zeros((1, 1, L, 48))
-                msa_masked[:, :, :, :22] = seq[None, None]
-                msa_masked[:, :, :, 22:44] = seq[None, None]
-                msa_masked[:, :, 0, 46] = 1.0
-                msa_masked[:, :, -1, 47] = 1.0
-                msa_full = torch.zeros((1, 1, L, 25))
-                msa_full[:, :, :, :22] = seq[None, None]
-                msa_full[:, :, 0, 23] = 1.0
-                msa_full[:, :, -1, 24] = 1.0
-                t1d = torch.zeros((1, 1, L - batch['bind'].shape[1], 22))
-                #import pdb; pdb.set_trace()
-                t1d = torch.cat((torch.unsqueeze(torch.unsqueeze(torch.nn.functional.one_hot(batch['bind'][0], num_classes=22), 0), 0).to('cpu'), t1d), dim=2)
-                #t1d = torch.cat((t1d, torch.zeros((1, 1, L, 5))), dim=-1)
-                t2d = xyz_to_t2d(torch.unsqueeze(torch.unsqueeze(pose_t, 0), 0))
-                seq_tmp = t1d[..., :-1].argmax(dim=-1).reshape(-1, L)
-                alpha, _, alpha_mask, _ = get_torsions(pose_t_1.reshape(-1, L, 27, 3), seq_tmp, torch.full((22, 4, 4), 0), torch.full((22, 10), False, dtype=torch.bool), torch.ones((22, 3, 2))) #these wierd tensors are from rfdiffusion.utils
-                alpha_mask = torch.logical_and(alpha_mask, ~torch.isnan(alpha[...,0]))
-                alpha[torch.isnan(alpha)] = 1.0
-                alpha = alpha.reshape(1, -1, L, 10, 2)
-                alpha_mask = alpha_mask.reshape(1, -1, L, 10, 1)
-                alpha_t = torch.cat((alpha, alpha_mask), dim=-1).reshape(1, -1, L, 30)
-                idx_pdb =torch.tensor([batch['idx_pdb'][0][i][1]-1 for i in range(len(batch['idx_pdb'][0]))]).unsqueeze(0)
-                seq_in = torch.zeros((L, 22))
-                seq_in[:, 21] = 1.0
-                seq_in = torch.unsqueeze(torch.tensor([21 for i in range(L)]), dim=0)
-                seq_in = torch.nn.functional.one_hot(seq_in, num_classes=22).float()
-                mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
-                print(seq_in.shape)
-                #import pdb; pdb.set_trace()
-
-                pose_t_1 = pose_t_1.to(batch['bind'].device)
-                t1d = t1d.to(batch['bind'].device)
-                t2d = t2d.to(batch['bind'].device)
-                alpha_t = alpha_t.to(batch['bind'].device)
-                pose_t_1 = pose_t_1.to(batch['bind'].device)
-                seq_in = seq_in.to(batch['bind'].device)
-                seq = seq.to(batch['bind'].device)
-                idx_pdb = idx_pdb.to(batch['bind'].device)
-                msa_masked = msa_masked.to(batch['bind'].device)
-                msa_full = msa_full.to(batch['bind'].device)
-
-                xyz_t_1 = torch.clone(pose_t_1)
-                xyz_t_1 = xyz_t_1[None, None]
-                xyz_t_1 = torch.cat((xyz_t_1[:, :14, :], torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3)
-                print("msa_masked = ", msa_masked.shape)
-                print(msa_full.shape)
-                print(seq_in.shape)
-                print(xyz_t_1.squeeze(dim=0).shape)
-                print(idx_pdb.shape)
-                print(t1d.shape)
-                print(t2d.shape)
-                print(xyz_t_1.shape)
-                print(alpha_t.shape)
-                print('MASK_27 = ', mask.shape) 
-                #import pdb; pdb.set_trace()
-                #msa_prev, pair_prev, px0, state_prev, alpha, logits, plddt = self.model(
-                
-                with torch.no_grad():    
-                    output = self.model(
-                            msa_masked,
-                            msa_full,
-                            seq_in,
-                            xyz_t_1.squeeze(dim=0),#[:, :14, :]
-                            #pose_t,
-                            idx_pdb,
-                            t1d=t1d,
-                            t2d=t2d,
-                            #xyz_t=pose_t.unsqueeze(0),
-                            xyz_t=xyz_t_1, 
-                            alpha_t=alpha_t,
-                            msa_prev=None,
-                            pair_prev=None,
-                            state_prev=None,
-                            t=torch.tensor(t+1),
-                            motif_mask=mask,
-                            return_infer=True,
-                            )
-
+                _, x_prev = self.ministep(batch, t_gloabl + 1)
                 torch.cuda.empty_cache()
-                msa_prev = output[0]
-                pair_prev = output[1]
-                state_prev = output[3]
-
+                loss, _ = self.ministep(batch, t_global, x_prev)
                 
-
-
-
-                
-                #from model_runnsers Sampler._preprocess mostly
-                seq = torch.nn.functional.one_hot(batch['seq'][0], num_classes=22)
-                print('shape:', seq.shape)
-                L = seq.shape[0]
-                print('LENGTH = ', L)
-            
-
-                msa_masked = torch.zeros((1, 1, L, 48))
-                msa_masked[:, :, :, :22] = seq[None, None]
-                msa_masked[:, :, :, 22:44] = seq[None, None]
-                msa_masked[:, :, 0, 46] = 1.0
-                msa_masked[:, :, -1, 47] = 1.0
-                msa_full = torch.zeros((1, 1, L, 25))
-                msa_full[:, :, :, :22] = seq[None, None]
-                msa_full[:, :, 0, 23] = 1.0
-                msa_full[:, :, -1, 24] = 1.0
-                t1d = torch.zeros((1, 1, L - batch['bind'].shape[1], 22))
-                t1d = torch.cat((torch.unsqueeze(torch.unsqueeze(torch.nn.functional.one_hot(batch['bind'][0], num_classes=22), 0), 0).to('cpu'), t1d), dim=2)
-                #t1d = torch.cat((t1d, torch.zeros((1, 1, L, 5))), dim=-1)
-                t2d = xyz_to_t2d(torch.unsqueeze(torch.unsqueeze(pose_t, 0), 0))
-                seq_tmp = t1d[..., :-1].argmax(dim=-1).reshape(-1, L)
-                
-                alpha, _, alpha_mask, _ = get_torsions(pose_t.reshape(-1, L, 27, 3), seq_tmp, torch.full((22, 4, 4), 0), torch.full((22, 10), False, dtype=torch.bool), torch.ones((22, 3, 2))) #these wierd tensors are from rfdiffusion.utils
-                alpha_mask = torch.logical_and(alpha_mask, ~torch.isnan(alpha[...,0]))
-                alpha[torch.isnan(alpha)] = 1.0
-                alpha = alpha.reshape(1, -1, L, 10, 2)
-                alpha_mask = alpha_mask.reshape(1, -1, L, 10, 1)
-                alpha_t = torch.cat((alpha, alpha_mask), dim=-1).reshape(1, -1, L, 30)
-                idx_pdb =torch.tensor([batch['idx_pdb'][0][i][1]-1 for i in range(len(batch['idx_pdb'][0]))]).unsqueeze(0)
-                seq_in = torch.zeros((L, 22))
-                seq_in[:, 21] = 1.0
-                seq_in = torch.unsqueeze(torch.tensor([21 for i in range(L)]), dim=0)
-                seq_in = torch.nn.functional.one_hot(seq_in, num_classes=22).float()
-                mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
-                print(seq_in.shape)
-                #import pdb; pdb.set_trace()
-
-                pose_t = pose_t.to(batch['bind'].device)
-                t1d = t1d.to(batch['bind'].device)
-                t2d = t2d.to(batch['bind'].device)
-                alpha_t = alpha_t.to(batch['bind'].device)
-                pose_t = pose_t.to(batch['bind'].device)
-                seq_in = seq_in.to(batch['bind'].device)
-                seq = seq.to(batch['bind'].device)
-                idx_pdb = idx_pdb.to(batch['bind'].device)
-                msa_masked = msa_masked.to(batch['bind'].device)
-                msa_full = msa_full.to(batch['bind'].device)
-
-                xyz_t = torch.clone(pose_t)
-                xyz_t = xyz_t[None, None]
-                xyz_t = torch.cat((xyz_t[:, :14, :], torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3)
-                print("msa_masked = ", msa_masked.shape)
-                print(msa_full.shape)
-                print(seq_in.shape)
-                print(xyz_t.squeeze(dim=0).shape)
-                print(idx_pdb.shape)
-                print(t1d.shape)
-                print(t2d.shape)
-                print(xyz_t.shape)
-                print(alpha_t.shape)
-                print('MASK_27 = ', mask.shape) 
-                #import pdb; pdb.set_trace()
-                #msa_prev, pair_prev, px0, state_prev, alpha, logits, plddt = self.model(
-                output = self.model(
-                        msa_masked,
-                        msa_full,
-                        seq_in,
-                        xyz_t.squeeze(dim=0),#[:, :14, :]
-                        #pose_t,
-                        idx_pdb,
-                        t1d=t1d,
-                        t2d=t2d,
-                        #xyz_t=pose_t.unsqueeze(0),
-                        xyz_t=xyz_t, 
-                        alpha_t=alpha_t,
-                        msa_prev=msa_prev,
-                        pair_prev=pair_prev,
-                        state_prev=state_prev,
-                        t=torch.tensor(t),
-                        motif_mask=mask,
-                        return_infer=True,
-                        )
-                _, px0 = self.sampler.allatom(torch.argmax(seq_in, dim=-1), output[2], output[4])
-                #import pdb; pdb.set_trace()
-                alpha_0, _, alpha_mask_0, _ = get_torsions(batch['xyz_27'].reshape(-1, L, 27, 3), batch['seq'], torch.full((22, 4, 4), 0).to(batch['bind'].device), torch.full((22, 10), False, dtype=torch.bool).to(batch['bind'].device), torch.ones((22, 3, 2)).to(batch['bind'].device)) #these wierd tensors are from rfdiffusion.utils
-                alpha_mask_0 = torch.logical_and(alpha_mask_0, ~torch.isnan(alpha_0[...,0]))
-                alpha_0[torch.isnan(alpha_0)] = 1.0
-                alpha_0 = alpha_0.reshape(1, -1, L, 10, 2)
-                alpha_mask_0 = alpha_mask_0.reshape(1, -1, L, 10, 1)
-                alpha_0 = torch.cat((alpha_0, alpha_mask_0), dim=-1).reshape(1, -1, L, 30)
-
-                #import pdb; pdb.set_trace()
-                #loss = lframe(px0[:, :, :14, :], batch['xyz_27'][:, :, :14, :], alpha_0, output[4], .99, 1, 1, t)
-                loss = self.lframe(px0[:, :, :14, :], batch['xyz_27'][:, :, :14, :], alpha_0, torch.cat((output[4].reshape(1, -1, L, 10, 2), alpha_mask_0), dim=-1).reshape(1, -1, L, 30), .99, 1, 1, t)
-
-
-        
         self.log('val_loss', float(loss.item())/(.99**(self.T - t)), on_step=True, on_epoch=True, prog_bar=False, logger=True)
-        #self.log('val_acc', float(self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2), batch['bind'])), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         self.log('val_time', time.time()- start_time, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {
             'loss': loss,
             'batch_size': batch['seq'].size(0)
-        }
-    
+        } 
     def train_dataloader(self):
         if str(self.cfg.model.seq_identity) == '0.9':
             cs = f'{self.cfg.io.final}-9'
@@ -808,8 +199,7 @@ class RebaseT5(pl.LightningModule):
 
         dataloader = AsynchronousLoader(DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1, collate_fn=dataset.collater), device=self.device)
         #dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=1, collate_fn=dataset.collater)
-        return dataloader
-    
+        return dataloader 
     def val_dataloader(self):
         if str(self.cfg.model.seq_identity)== '0.9':
             cs = f'{self.cfg.io.final}-9'
@@ -828,8 +218,7 @@ class RebaseT5(pl.LightningModule):
         )
         self.dataset = dataset
         dataloader = AsynchronousLoader(DataLoader(dataset, batch_size=1, shuffle=False, num_workers=1, collate_fn=dataset.collater), device=self.device)
-        return dataloader
-    
+        return dataloader 
     def configure_optimizers(self):
         opt = torch.optim.AdamW([
                 #{'params': self.ifmodel.parameters(), 'lr': float(self.hparams.model.lr)/5},
@@ -854,8 +243,6 @@ class RebaseT5(pl.LightningModule):
             }
         else:
             return opt
-
-
     def decode(self, seq):
         '''
         decode tokens to  string
@@ -866,7 +253,107 @@ class RebaseT5(pl.LightningModule):
         for tok in seq:
             newseq += str(self.ifalphabet.get_tok(tok))
         return newseq
+    def ministep(self, batch, t, xyz_0_prev = None):
+        poses, xyz_27 = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :], batch['seq'][0].to(batch['xyz_27'].device), batch['mask_27'][0][:, :14].to(batch['xyz_27'].device))
+        pose_t = poses[t].unsqueeze(0)
+    
+        #from model_runnsers Sampler._preprocess mostly
+        L = batch['seq'].shape[1]
+        seq = torch.nn.functional.one_hot(batch['seq'], num_classes=22)
 
+        t1d = torch.zeros(1, L, 23).to(batch['xyz_27'].device)
+        t1d[20] = 1
+        t1d[21] = 1 - (t/T)
+        padded_bind = torch.cat(batch['bind'], torch.zeros((1, L - batch['bind'].shape[1], batch['bind'].shape[2])).to(batch['xyz_27'].device))
+        t1d = torch.cat(t1d, padded_bind, dim=-1)
+        t2d = xyz_to_t2d(pose_t.unsqueeze(0))
+
+
+        
+        seq_tmp = torch.full((1, L), 21)
+        alpha, _, alpha_mask, _ = get_torsions(pose_t.reshape(-1, L, 27, 3), seq_tmp, self.torsion_indices, self.torsion_can_flip, self.torsion_ref_angles) #these wierd tensors are from rfdiffusion.utils
+        alpha_mask = torch.logical_and(alpha_mask, ~torch.isnan(alpha[...,0]))
+        alpha[torch.isnan(alpha)] = 0.0
+        alpha = alpha.reshape(1,-1,L,10,2)
+        alpha_mask = alpha_mask.reshape(1,-1,L,10,1)
+        alpha_t = torch.cat((alpha, alpha_mask), dim=-1).reshape(1, -1, L, 30)
+
+
+        print('LENGTH = ', L)
+        
+        seq_in = torch.nn.functional.one_hot(seq_tmp)
+        msa_masked = torch.zeros((1, 1, L, 48))
+        msa_masked[:, :, :, :22] = seq_in[None, None]
+        msa_masked[:, :, :, 22:44] = seq_in[None, None]
+        msa_masked[:, :, 0, 46] = 1.0
+        msa_masked[:, :, -1, 47] = 1.0
+        msa_full = torch.zeros((1, 1, L, 25))
+        msa_full[:, :, :, :22] = seq[None, None]
+        msa_full[:, :, 0, 23] = 1.0
+        msa_full[:, :, -1, 24] = 1.0
+        idx_pdb =torch.tensor([batch['idx_pdb'][0][i][1]-1 for i in range(len(batch['idx_pdb'][0]))]).unsqueeze(0)
+        mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
+        
+
+        pose_t = pose_t.to(batch['bind'].device)
+        t1d = t1d.to(batch['bind'].device)
+        t2d = t2d.to(batch['bind'].device)
+        alpha_t = alpha_t.to(batch['bind'].device)
+        pose_t = pose_t.to(batch['bind'].device)
+        seq_in = seq_in.to(batch['bind'].device)
+        seq = seq.to(batch['bind'].device)
+        idx_pdb = idx_pdb.to(batch['bind'].device)
+        msa_masked = msa_masked.to(batch['bind'].device)
+        msa_full = msa_full.to(batch['bind'].device)
+
+        xyz_t = torch.clone(pose_t)
+        xyz_t = xyz_t[None, None]
+        xyz_t = torch.cat((xyz_t[:, :14, :], torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3)
+        #WORKING
+        print("msa_masked = ", msa_masked.shape)
+        print(msa_full.shape)
+        print(seq_in.shape)
+        print(xyz_t.squeeze(dim=0).shape)
+        print(idx_pdb.shape)
+        print(t1d.shape)
+        print(t2d.shape)
+        print(xyz_t.shape)
+        print(alpha_t.shape)
+        print('MASK_27 = ', mask.shape) 
+        #import pdb; pdb.set_trace()
+        #msa_prev, pair_prev, px0, state_prev, alpha, logits, plddt = self.model(
+        if xyz_0_prev = None:
+
+            logits, logits_aa, logits_exp, xyz_pred, alpha_s, lddt = self.model(
+                    msa_latent=msa_masked, 
+                    msa_full=msa_full,
+                    seq=seq_in,
+                    xyz=xyz_t,#[:, :14, :]. xyz_prev in paper
+                    idx=idx_pdb,
+                    t=torch.tensor(t),
+                    t1d=t1d,
+                    t2d=t2d,
+                    xyz_t=xyz_t, 
+                    alpha_t=alpha_t,
+                    motif_mask=mask,
+                    )
+        else: #for self conditioning
+            logits, logits_aa, logits_exp, xyz_pred, alpha_s, lddt = self.model(
+                    msa_latent=msa_masked, 
+                    msa_full=msa_full,
+                    seq=seq_in,
+                    xyz=xyz_t,#[:, :14, :]. xyz_prev in paper
+                    idx=idx_pdb,
+                    t=torch.tensor(t),
+                    t1d=t1d,
+                    t2d=t2d,
+                    xyz_t=xyz_0_prev, 
+                    alpha_t=alpha_t,
+                    motif_mask=mask,
+                    )
+        logits_dist, logits_omega, logits_theta, logits_phi = logits
+        loss = ldiffusion(xyz_27, xyz_pred, logits_dist, logits_omega, logits_theta, logits_phi) 
+        return loss, xyz_pred[-1] #check to make sure xyz_pred last structure is -1
 
 
 
