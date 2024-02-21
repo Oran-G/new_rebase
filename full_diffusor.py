@@ -291,7 +291,7 @@ class RebaseT5(pl.LightningModule):
         msa_full[:, :, :, :22] = seq[None, None]
         msa_full[:, :, 0, 23] = 1.0
         msa_full[:, :, -1, 24] = 1.0
-        idx_pdb =torch.tensor([batch['idx_pdb'][0][i][1]-1 for i in range(len(batch['idx_pdb'][0]))]).unsqueeze(0)
+        idx_pdb = torch.tensor([batch['idx_pdb'][0][i][1]-1 for i in range(len(batch['idx_pdb'][0]))]).unsqueeze(0)
         mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
         
 
@@ -322,7 +322,7 @@ class RebaseT5(pl.LightningModule):
         print('MASK_27 = ', mask.shape) 
         #import pdb; pdb.set_trace()
         #msa_prev, pair_prev, px0, state_prev, alpha, logits, plddt = self.model(
-        if xyz_0_prev = None:
+        if xyz_0_prev == None:
 
             logits, logits_aa, logits_exp, xyz_pred, alpha_s, lddt = self.model(
                     msa_latent=msa_masked, 
