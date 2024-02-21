@@ -29,7 +29,7 @@ from rfdiffusion.kinematics import xyz_to_t2d
 from rfdiffusion.util import get_torsions, make_frame, torsion_indices, torsion_can_flip, reference_angles
 from rfdiffusion.inference.utils import Denoise
 from rfdiffusion.inference.utils import process_target
-from rfdiffusion.chemical import aa2long aa2longalt, torsions, ideal_coords
+from rfdiffusion.chemical import aa2long, aa2longalt, torsions, ideal_coords
 
 from .diffusor_utils import PARAMS, RFdict, neuc_dict, reset_all_weights, CSVDataset,EncodedFastaDatasetWrapper, ldiffusion
 from constants import RFdict
