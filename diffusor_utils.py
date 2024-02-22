@@ -12,7 +12,7 @@ PARAMS = { #see page 33/table 6
     "gamma":.99, 
     "w2d":1.0,
     "lr":.001,
-    "lr_decay":,
+    "lr_decay":.001,
     "Bt0": .01, #formula is Bt0 + (t/t)(BtT - Bt0)
     "BtT": .07,
     "Br0": 1.06, #formula is (t*Br0) + .5*(t/T)**2(BrT - Br0)
