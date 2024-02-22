@@ -11,7 +11,7 @@ PARAMS = { #see page 33/table 6
     "dclamp":10, 
     "gamma":.99, 
     "w2d":1.0,
-    "lr":,
+    "lr":.001,
     "lr_decay":,
     "Bt0": .01, #formula is Bt0 + (t/t)(BtT - Bt0)
     "BtT": .07,
