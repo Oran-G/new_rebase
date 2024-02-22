@@ -4,7 +4,7 @@ from rfdiffusion.coord6d import get_coords6d
 import rfdiffusion.kinematics as kinematics
 from constants import NEUC_NUMS, NEUCLEOTIDES
 PARAMS = { #see page 33/table 6
-    **kinematics.PARAMS
+    **kinematics.PARAMS,
     "T":200,
     "wtrans": 0.5, 
     "wrot":1.0, 
