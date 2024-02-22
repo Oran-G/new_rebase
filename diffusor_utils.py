@@ -75,10 +75,7 @@ def l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27): #loss as d
     # 6d coordinates order: (dist,omega,theta,phi)
     c6d = kinematics.c6d_to_bins(kinematics.xyz_to_c6d(xyz_27)[0])
     dist, omega, theta, phi = c6d[..., 0], c6d[..., 1], c6d[..., 2] ,c6d[..., 3]
-    return torch.nn.functional.cross_entropy(logits_dist, dist) + 
-        torch.nn.functional.cross_entropy(logits_omega, omega) + 
-        torch.nn.functional.cross_entropy(logits_theta, theta) +
-        torch.nn.functional.cross_entropy(logits_phi,  phi)
+    return torch.nn.functional.cross_entropy(logits_dist, dist) + torch.nn.functional.cross_entropy(logits_omega, omega) + torch.nn.functional.cross_entropy(logits_theta, theta) + torch.nn.functional.cross_entropy(logits_phi,  phi)
 def ldiffusion(xyz_27, xyz_27_preds, logits_dist, logits_omega, logits_theta, logits_phi, wtrans=PARAMS['wtrans'], wrot=PARAMS['wrot'], dclamp=PARAMS['dclamp'], gamma=PARAMS['gamma'], w2d=PARAMS['w2d']):
     return lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma) + 
         (w2d*l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27))
