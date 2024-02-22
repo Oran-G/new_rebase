@@ -146,7 +146,7 @@ class RebaseT5(pl.LightningModule):
         
         
         t_global = random.randint(0, self.T)
-        if random.randint(0, 1) == 0 or t == self.T:
+        if random.randint(0, 1) == 0 or t_global == self.T:
             loss, _ = self.ministep(batch, t_global)
         else:
             with torch.no_grad():
@@ -166,11 +166,11 @@ class RebaseT5(pl.LightningModule):
 
         torch.cuda.empty_cache()
         with torch.no_grad():
-            t = random.randint(0, self.T)
-            if random.randint(0, 1) == 0 or t == self.T:
+            t_global = random.randint(0, self.T)
+            if random.randint(0, 1) == 0 or t_global == self.T:
                 loss, _ = self.ministep(batch, t_global)
             else:
-                _, x_prev = self.ministep(batch, t_gloabl + 1)
+                _, x_prev = self.ministep(batch, t_global + 1)
                 torch.cuda.empty_cache()
                 loss, _ = self.ministep(batch, t_global, x_prev)
                 
@@ -255,20 +255,25 @@ class RebaseT5(pl.LightningModule):
             newseq += str(self.ifalphabet.get_tok(tok))
         return newseq
     def ministep(self, batch, t, xyz_0_prev = None):
-        poses, xyz_27 = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :], batch['seq'][0].to(batch['xyz_27'].device), batch['mask_27'][0][:, :14].to(batch['xyz_27'].device))
-        pose_t = poses[t].unsqueeze(0)
-    
+        #print(batch['xyz_27'].device)
+
+        #import pdb; pdb.set_trace()
+        #poses, xyz_27 = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :], batch['seq'][0].to(batch['xyz_27'].device), batch['mask_27'][0][:, :14].to(batch['xyz_27'].device))
+        poses, xyz_27 = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :].to('cpu'), batch['seq'][0].to('cpu'), None)
+        pose_t = poses[t].unsqueeze(0).to(batch['xyz_27'].device)
+        xyz_27 = xyz_27.to(batch['xyz_27'].device)
+        #import pdb; pdb.set_trace() 
         #from model_runnsers Sampler._preprocess mostly
         L = batch['seq'].shape[1]
         seq = torch.nn.functional.one_hot(batch['seq'], num_classes=22)
 
         t1d = torch.zeros(1, L, 23).to(batch['xyz_27'].device)
-        t1d[20] = 1
-        t1d[21] = 1 - (t/T)
-        padded_bind = torch.cat(self.neuc_dict.encode(batch['bind']), torch.zeros((1, L - batch['bind'].shape[1], self.neuc_dict.encode(batch['bind']).shape[2])).to(batch['xyz_27'].device))
-        t1d = torch.cat(t1d, padded_bind, dim=-1)
+        t1d[..., 20] = 1
+        t1d[..., 21] = 1 - (t/self.T)
+        padded_bind = torch.cat((batch['bind'], torch.zeros((1, L - batch['bind'].shape[1], batch['bind'].shape[2])).to(batch['xyz_27'].device)), dim=1)
+        t1d = torch.cat((t1d, padded_bind), dim=-1)
         t2d = xyz_to_t2d(pose_t.unsqueeze(0))
-
+        import pdb; pdb.set_trace()
 
         
         seq_tmp = torch.full((1, L), 21)
