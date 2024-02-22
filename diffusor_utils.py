@@ -1,6 +1,10 @@
 import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset
+from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrapperDataset
+from typing import List, Dict
 import math
-from rfdiffusion.coord6d import get_coords6d
+from rfdiffusion.coords6d import get_coords6d
 import rfdiffusion.kinematics as kinematics
 from constants import NEUC_NUMS, NEUCLEOTIDES
 PARAMS = { #see page 33/table 6
@@ -104,9 +108,10 @@ class RFdict():
         return line.append(eos_idx)
 
 class neuc_dict():
-    self.neucleotides = NEUCLEOTIDES
-    self.neuc_nums = NEUC_NUMS
-    self.letter_idx = {self.neucleotides.keys()[i]:i for i in range(len(self.neucleotides.keys))}
+    def __init__(self):
+        self.neucleotides = NEUCLEOTIDES
+        self.neuc_nums = NEUC_NUMS
+        self.letter_idx = {list(self.neucleotides.keys())[i]:i for i in range(len(self.neucleotides.keys()))}
     def encode(self, line):
         enc = torch.zeros(len(line), 5)
         for char in range(line):
