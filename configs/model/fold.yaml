@@ -12,5 +12,6 @@ max_epochs: -1
 name: small
 precision: 32
 seq_identity: .3
+lrpower: 2
 #size -> 1.6 million params
 #480 iters on RTX8000 at fp32

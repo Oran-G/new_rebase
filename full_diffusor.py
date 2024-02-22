@@ -68,7 +68,7 @@ class RebaseT5(pl.LightningModule):
         print('initialized')
         
         self.params = diffusor_utils.PARAMS
-        self.T = self.params
+        self.T = self.params['T']
         from rfdiffusion.inference.model_runners  import Sampler
         self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusion/config/inference/base.yaml'))
         self.model = self.sampler.model.train() #ROSETTAFold Model created by sampler
@@ -76,9 +76,9 @@ class RebaseT5(pl.LightningModule):
         from rfdiffusion.diffusion import Diffuser
         self.torsion_indices, self.torsion_can_flip, self.torsion_ref_angles = torsion_indices, torsion_can_flip, reference_angles
         self.diffuser = Diffuser(T=self.T,
-		    b_0=self.params['Bt0'], 
-		    b_T=self.params['Bt0'], 
-		    min_sigma=0.01, #IGSO3 docs say to do this 
+	    b_0=self.params['Bt0'], 
+	    b_T=self.params['Bt0'], 
+	    min_sigma=0.01, #IGSO3 docs say to do this 
             max_sigma=self.params['Bt0']+((self.params['BtT'] - self.params['Bt0'])/2), #see page 12
             min_b=self.params['Bt0'], 
             max_b=self.params['BtT'], 
@@ -86,6 +86,7 @@ class RebaseT5(pl.LightningModule):
             so3_schedule_type='linear',  # same but for IGS03 class
             so3_type='igs03', #this is literally not stored or used anywhere in the init function,  
             crd_scale=self.params["crd_scale"], #  I think it has to do with centering the coordinates in space to prevent data leakage as of rfdiffusion.diffusion.py line 641
+            cache_dir = '/vast/og2114/RFdiffusion/schedules/',
             )
         
 
