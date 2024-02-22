@@ -273,11 +273,9 @@ class RebaseT5(pl.LightningModule):
         padded_bind = torch.cat((batch['bind'], torch.zeros((1, L - batch['bind'].shape[1], batch['bind'].shape[2])).to(batch['xyz_27'].device)), dim=1)
         t1d = torch.cat((t1d, padded_bind), dim=-1)
         t2d = xyz_to_t2d(pose_t.unsqueeze(0))
-        import pdb; pdb.set_trace()
-
-        
-        seq_tmp = torch.full((1, L), 21)
-        alpha, _, alpha_mask, _ = get_torsions(pose_t.reshape(-1, L, 27, 3), seq_tmp, self.torsion_indices, self.torsion_can_flip, self.torsion_ref_angles) #these wierd tensors are from rfdiffusion.utils
+                
+        seq_tmp = torch.full((1, L), 21).to(batch['xyz_27'].device)
+        alpha, _, alpha_mask, _ = get_torsions(pose_t.reshape(-1, L, 27, 3), seq_tmp, self.torsion_indices.to(batch['xyz_27'].device), self.torsion_can_flip.to(batch['xyz_27'].device), self.torsion_ref_angles.to(batch['xyz_27'].device)) #these wierd tensors are from rfdiffusion.utils
         alpha_mask = torch.logical_and(alpha_mask, ~torch.isnan(alpha[...,0]))
         alpha[torch.isnan(alpha)] = 0.0
         alpha = alpha.reshape(1,-1,L,10,2)
@@ -286,7 +284,6 @@ class RebaseT5(pl.LightningModule):
 
 
         print('LENGTH = ', L)
-        
         seq_in = torch.nn.functional.one_hot(seq_tmp)
         msa_masked = torch.zeros((1, 1, L, 48))
         msa_masked[:, :, :, :22] = seq_in[None, None]
@@ -297,10 +294,10 @@ class RebaseT5(pl.LightningModule):
         msa_full[:, :, :, :22] = seq[None, None]
         msa_full[:, :, 0, 23] = 1.0
         msa_full[:, :, -1, 24] = 1.0
-        idx_pdb = torch.tensor([batch['idx_pdb'][0][i][1]-1 for i in range(len(batch['idx_pdb'][0]))]).unsqueeze(0)
+        idx_pdb = torch.tensor([i for i in range(L)]).unsqueeze(0)
         mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
         
-
+        
         pose_t = pose_t.to(batch['bind'].device)
         t1d = t1d.to(batch['bind'].device)
         t2d = t2d.to(batch['bind'].device)
@@ -311,10 +308,10 @@ class RebaseT5(pl.LightningModule):
         idx_pdb = idx_pdb.to(batch['bind'].device)
         msa_masked = msa_masked.to(batch['bind'].device)
         msa_full = msa_full.to(batch['bind'].device)
-
+        #import pdb;pdb.set_trace()
         xyz_t = torch.clone(pose_t)
         xyz_t = xyz_t[None, None]
-        xyz_t = torch.cat((xyz_t[:, :14, :], torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3)
+        xyz_t = torch.cat((xyz_t[:, :14, :].squeeze(0), torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3)
         #WORKING
         print("msa_masked = ", msa_masked.shape)
         print(msa_full.shape)
