@@ -8,7 +8,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pl_bolts.datamodules.async_dataloader import AsynchronousLoader
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
-from transformers import T5Config, T5ForConditionalGeneration, get_linear_schedule_with_warmup,  get_polynomial_decay_schedule_with_warmup, BertGenerationConfig, BertGenerationDecoder
+from transformers import T5Config, T5ForConditionalGeneration, get_linear_schedule_with_warmup, get_polynomial_decay_schedule_with_warmup, BertGenerationConfig, BertGenerationDecoder
 from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrapperDataset
 import esm
 import esm.inverse_folding
@@ -31,8 +31,7 @@ from rfdiffusion.inference.utils import Denoise
 from rfdiffusion.inference.utils import process_target
 from rfdiffusion.chemical import aa2long, aa2longalt, torsions, ideal_coords
 
-from .diffusor_utils import PARAMS, RFdict, neuc_dict, reset_all_weights, CSVDataset,EncodedFastaDatasetWrapper, ldiffusion
-from constants import RFdict
+import diffusor_utils
         
 
 
@@ -59,7 +58,8 @@ class RebaseT5(pl.LightningModule):
 
 
         
-        self.ifalphabet= RFdict()
+        self.ifalphabet= diffusor_utils.RFdict()
+        self.neuc_dict = diffusor_utils.neuc_dict()
         
         '''
         used to record validation data for logging
@@ -67,8 +67,8 @@ class RebaseT5(pl.LightningModule):
         self.val_data = []
         print('initialized')
         
-        self.params = PARAMS
-        self.T = PARAMS['T']
+        self.params = diffusor_utils.PARAMS
+        self.T = self.params
         from rfdiffusion.inference.model_runners  import Sampler
         self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusion/config/inference/base.yaml'))
         self.model = self.sampler.model.train() #ROSETTAFold Model created by sampler
@@ -76,16 +76,16 @@ class RebaseT5(pl.LightningModule):
         from rfdiffusion.diffusion import Diffuser
         self.torsion_indices, self.torsion_can_flip, self.torsion_ref_angles = torsion_indices, torsion_can_flip, reference_angles
         self.diffuser = Diffuser(T=self.T,
-		    b_0=PARAMS['Bt0'], 
-		    b_T=PARAMS['Bt0'], 
+		    b_0=self.params['Bt0'], 
+		    b_T=self.params['Bt0'], 
 		    min_sigma=0.01, #IGSO3 docs say to do this 
-            max_sigma=PARAMS['Bt0']+((PARAMS['BtT'] - PARAMS['Bt0'])/2), #see page 12
-            min_b=PARAMS['Bt0'], 
-            max_b=PARAMS['BtT'], 
+            max_sigma=self.params['Bt0']+((self.params['BtT'] - self.params['Bt0'])/2), #see page 12
+            min_b=self.params['Bt0'], 
+            max_b=self.params['BtT'], 
             schedule_type='linear', # this gets fed into the Euclidean diffuser class —> default for that is linear 
             so3_schedule_type='linear',  # same but for IGS03 class
             so3_type='igs03', #this is literally not stored or used anywhere in the init function,  
-            crd_scale=PARAMS["crd_scale"], #  I think it has to do with centering the coordinates in space to prevent data leakage as of rfdiffusion.diffusion.py line 641
+            crd_scale=self.params["crd_scale"], #  I think it has to do with centering the coordinates in space to prevent data leakage as of rfdiffusion.diffusion.py line 641
             )
         
 
@@ -188,8 +188,8 @@ class RebaseT5(pl.LightningModule):
             cs = self.cfg.io.final
         if self.cfg.model.dna_clust == True:
             cs = self.cfg.io.dnafinal
-        dataset = EncodedFastaDatasetWrapper(
-            CSVDataset(cs, 'train', clust=self.cfg.model.sample_by_cluster),
+        dataset = diffusor_utils.EncodedFastaDatasetWrapper(
+            diffusor_utils.CSVDataset(cs, 'train', clust=self.cfg.model.sample_by_cluster),
 
             self.ifalphabet,
             apply_eos=False,
@@ -210,8 +210,8 @@ class RebaseT5(pl.LightningModule):
 
         if self.cfg.model.dna_clust == True:
             cs = self.cfg.io.dnafinal
-        dataset = EncodedFastaDatasetWrapper(
-            CSVDataset(cs, 'val', clust=self.cfg.model.sample_by_cluster),
+        dataset = diffusor_utils.EncodedFastaDatasetWrapper(
+            diffusor_utils.CSVDataset(cs, 'val', clust=self.cfg.model.sample_by_cluster),
             self.ifalphabet,
             apply_eos=False,
             apply_bos=False,
@@ -264,7 +264,7 @@ class RebaseT5(pl.LightningModule):
         t1d = torch.zeros(1, L, 23).to(batch['xyz_27'].device)
         t1d[20] = 1
         t1d[21] = 1 - (t/T)
-        padded_bind = torch.cat(batch['bind'], torch.zeros((1, L - batch['bind'].shape[1], batch['bind'].shape[2])).to(batch['xyz_27'].device))
+        padded_bind = torch.cat(self.neuc_dict.encode(batch['bind']), torch.zeros((1, L - batch['bind'].shape[1], self.neuc_dict.encode(batch['bind']).shape[2])).to(batch['xyz_27'].device))
         t1d = torch.cat(t1d, padded_bind, dim=-1)
         t2d = xyz_to_t2d(pose_t.unsqueeze(0))
 
@@ -352,7 +352,7 @@ class RebaseT5(pl.LightningModule):
                     motif_mask=mask,
                     )
         logits_dist, logits_omega, logits_theta, logits_phi = logits
-        loss = ldiffusion(xyz_27, xyz_pred, logits_dist, logits_omega, logits_theta, logits_phi) 
+        loss = diffusor_utils.ldiffusion(xyz_27, xyz_pred, logits_dist, logits_omega, logits_theta, logits_phi) 
         return loss, xyz_pred[-1] #check to make sure xyz_pred last structure is -1
 
 
@@ -430,5 +430,3 @@ def main(cfg: DictConfig) -> None:
 
 if __name__ == '__main__':
     main()
-
-
