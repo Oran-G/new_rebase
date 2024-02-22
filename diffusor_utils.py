@@ -4,9 +4,12 @@ from torch.utils.data import DataLoader, Dataset
 from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrapperDataset
 from typing import List, Dict
 import math
+import random
 from rfdiffusion.coords6d import get_coords6d
 import rfdiffusion.kinematics as kinematics
 from constants import NEUC_NUMS, NEUCLEOTIDES
+import pandas as pd
+from rfdiffusion.inference.utils import process_target
 PARAMS = { #see page 33/table 6
     **kinematics.PARAMS,
     "T":200,
@@ -113,12 +116,15 @@ class neuc_dict():
         self.neuc_nums = NEUC_NUMS
         self.letter_idx = {list(self.neucleotides.keys())[i]:i for i in range(len(self.neucleotides.keys()))}
     def encode(self, line):
+        #print(self.neuc_nums[self.letter_idx[line[0]]])
+        #import pdb; pdb.set_trace()
         enc = torch.zeros(len(line), 5)
-        for char in range(line):
+        for char in range(len(line)):
             if line[char] in self.neucleotides.keys():
-                enc[line[char], self.neuc_nums[self.letter_idx[line[char]]]] = 1
+                for item in  list(self.neuc_nums[self.letter_idx[line[char]]]):
+                    enc[char, item] = 1
             else:
-                enc[line[char], 4] = 1
+                enc[char, 4] = 1
         return enc
 def reset_all_weights(model: nn.Module) -> None:
     """
@@ -258,21 +264,21 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
 
     
         proccessed = process_target(f"/vast/og2114/rebase/20220519/output/{self.dataset[idx]['id']}/ranked_0.pdb")
-        print(proccessed.keys())
+        #print(proccessed['pdb_idx'])
         MAXLEN = 271
         if torch.tensor(proccessed['xyz_27']).shape[0] >= MAXLEN:
             start = random.randint(0, torch.tensor(proccessed['xyz_27']).shape[0] - (MAXLEN+1))
             end = start + MAXLEN
         else:
             start = 0
-            end = -1
+            end = torch.tensor(proccessed['xyz_27']).shape[0]
         #import pdb; pdb.set_trace()
         return {
             'bind':torch.tensor( self.neuc_dict.encode(self.dataset[idx]['bind'])),
             'xyz_27': torch.tensor(proccessed['xyz_27'])[start: end], #tensor of atomic coords
             'mask_27': torch.tensor(proccessed['mask_27'][start: end]), #tensor of true/false for if the atoms exist
             'seq': torch.tensor(proccessed['seq'][start:end]), #tensor of idx
-            'idx_pdb': proccessed['pdb_idx'][start:end],
+            'idx_pdb': torch.tensor([ i+1 for i in range(end -start)]),
 
         }
 
@@ -367,11 +373,11 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
 
         ##
         post_proccessed = {
-            'bind': torch.stack(batch['bind']),
-            'seq': torch.stack(batch['seq']),
-            'xyz_27': torch.stack(batch['xyz_27']),
-            'mask_27': torch.stack(batch['mask_27']),
-            'idx_pdb': torch.stack(batch['idx_pdb']),
+            'bind': torch.stack(select_by_key(batch, 'bind')),
+            'seq': torch.stack(select_by_key(batch,'seq')),
+            'xyz_27': torch.stack(select_by_key(batch,'xyz_27')),
+            'mask_27': torch.stack(select_by_key(batch,'mask_27')),
+            'idx_pdb': torch.stack(select_by_key(batch,'idx_pdb')),
             
         }
         return post_proccessed
