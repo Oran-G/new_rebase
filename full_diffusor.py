@@ -70,7 +70,7 @@ class RebaseT5(pl.LightningModule):
         self.params = diffusor_utils.PARAMS
         self.T = self.params['T']
         from rfdiffusion.inference.model_runners  import Sampler
-        self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusion/config/inference/base.yaml'))
+        self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusion/config/finetine/neuc.yaml')) # new config that should load the "Complex_Fold_base_ckpt.pt" model. see line 87 of model_runners
         self.model = self.sampler.model.train() #ROSETTAFold Model created by sampler
         self.model.to(self.device)
         from rfdiffusion.diffusion import Diffuser
@@ -294,24 +294,24 @@ class RebaseT5(pl.LightningModule):
         msa_full[:, :, :, :22] = seq[None, None]
         msa_full[:, :, 0, 23] = 1.0
         msa_full[:, :, -1, 24] = 1.0
-        idx_pdb = torch.tensor([i for i in range(L)]).unsqueeze(0)
+        idx_pdb = torch.tensor([i for i in range(L)])
         mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
         
         
         pose_t = pose_t.to(batch['bind'].device)
         t1d = t1d.to(batch['bind'].device)
-        t2d = t2d.to(batch['bind'].device)
-        alpha_t = alpha_t.to(batch['bind'].device)
+        t2d = t2d.to(batch['bind'].device).squeeze(0)
+        alpha_t = alpha_t.to(batch['bind'].device).squeeze()
         pose_t = pose_t.to(batch['bind'].device)
         seq_in = seq_in.to(batch['bind'].device).float()
         seq = seq.to(batch['bind'].device).float()
-        idx_pdb = idx_pdb.to(batch['bind'].device).float()
+        idx_pdb = idx_pdb.to(batch['bind'].device).float().squeeze(0)
         msa_masked = msa_masked.to(batch['bind'].device)
         msa_full = msa_full.to(batch['bind'].device)
         #import pdb;pdb.set_trace()
         xyz_t = torch.clone(pose_t)
         xyz_t = xyz_t[None, None]
-        xyz_t = torch.cat((xyz_t[:, :14, :].squeeze(0), torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3)
+        xyz_t = torch.cat((xyz_t[:, :14, :].squeeze(0), torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3).squeeze(0)
         #WORKING
         print("msa_masked = ", msa_masked.shape)
         print(msa_full.shape)
@@ -323,7 +323,7 @@ class RebaseT5(pl.LightningModule):
         print(xyz_t.shape)
         print(alpha_t.shape)
         print('MASK_27 = ', mask.shape) 
-        #import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         #msa_prev, pair_prev, px0, state_prev, alpha, logits, plddt = self.model(
         if xyz_0_prev == None:
 
@@ -331,7 +331,7 @@ class RebaseT5(pl.LightningModule):
                     msa_latent=msa_masked, 
                     msa_full=msa_full,
                     seq=seq_in,
-                    xyz=xyz_t,#[:, :14, :]. xyz_prev in paper
+                    xyz=xyz_t.squeeze(0),#[:, :14, :]. xyz_prev in paper
                     idx=idx_pdb,
                     t=torch.tensor(t),
                     t1d=t1d,
@@ -345,7 +345,7 @@ class RebaseT5(pl.LightningModule):
                     msa_latent=msa_masked, 
                     msa_full=msa_full,
                     seq=seq_in,
-                    xyz=xyz_t,#[:, :14, :]. xyz_prev in paper
+                    xyz=xyz_t.squeeze(),#[:, :14, :]. xyz_prev in paper
                     idx=idx_pdb,
                     t=torch.tensor(t),
                     t1d=t1d,
