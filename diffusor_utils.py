@@ -5,12 +5,12 @@ from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrap
 from typing import List, Dict
 import math
 import random
-from rfdiffusion.coords6d import get_coords6d
+from rfdiffusion.coord6d import get_coords6d
 import rfdiffusion.kinematics as kinematics
 from constants import NEUC_NUMS, NEUCLEOTIDES
 import pandas as pd
 from rfdiffusion.inference.utils import process_target
-PARAMS = { #see page 33/table 6
+PARAMS = { # see page 33/table 6
     **kinematics.PARAMS,
     "T":200,
     "wtrans": 0.5, 
@@ -20,16 +20,16 @@ PARAMS = { #see page 33/table 6
     "w2d":1.0,
     "lr":.001,
     "lr_decay":.001,
-    "Bt0": .01, #formula is Bt0 + (t/t)(BtT - Bt0)
+    "Bt0": .01, # formula is Bt0 + (t/t)(BtT - Bt0)
     "BtT": .07,
-    "Br0": 1.06, #formula is (t*Br0) + .5*(t/T)**2(BrT - Br0)
+    "Br0": 1.06, # formula is (t*Br0) + .5*(t/T)**2(BrT - Br0)
     "BrT": 1.77,
     "crd_scale":0.25,
-    "crop": 381, #default to 276 for last working example on my system
+    "crop": 381, # default to 276 for last working example on my system
     "batch": 64
 }
 def gramschmidt(z: torch.tensor):
-    #get r from z using gramschmidt method described pg. 3 supplemental methods
+    # create r from z using gramschmidt method described pg. 3 supplemental methods
     if len(z.shape) == 4:
         batch = []
         for b in range(z.shape[0]):
@@ -45,11 +45,13 @@ def gramschmidt(z: torch.tensor):
             residues.append(torch.stack([r1, r2, r3]))
         return torch.stack(residues)
 def xyztox(xyz_27: torch.tensor):
+    # Construct x = (y, z) from xyz coordinates
     z = xyz_27[:, :3, :]
     y = gramschmidt(x)
     return (y, z)
 def dframe(x, xpred, wtrans, wrot, dclamp):
-    if len(x[0].shape) == 4:
+    # dframe loss 
+    if len(x[0].shape) == 4: # Account for batched input
         batch = []
         for b in range(x[0].shape[0]):
             batch.append(dframe((x[0, b], x[1, b]), (x_pred[0, b], x_pred[1, b]), wtrans, wrot, dclamp))
@@ -59,8 +61,9 @@ def dframe(x, xpred, wtrans, wrot, dclamp):
         for l in range(x[0].shape[0]):
             total += wtrans*(min(torch.linalg.norm((x[1] - x_pred[1]), ord=2).pow(2), dclamp)**2) + wrot*((torch.linalg.norm((torch.eye(3) - (xpred[0].t() @ x[0]))).pow(2))**2)
         return math.sqrt(total / x[0].shape[0])
-def lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma): #loss described on page 28
-    if len(x[0].shape) == 5:
+def lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma): #loss described on page 28.
+    # dframe with exponantial time weighting
+    if len(x[0].shape) == 5: # Account for batched input
         batch = []
         for b in range(xyz_27.shape[0]):
             batch.append(lframe(xyz_27[b], xyz_27_preds[b], wtrans, wrot, dclamp, gamma))
@@ -76,7 +79,7 @@ def lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma): #loss described o
             divisor += gamma_term
         return full_total / gamma_term
 def l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27): #loss as described on page 30
-    
+    # Logit-based loss
     #c6d : pytorch tensor of shape [batch,nres,nres,4]
     #      stores stacked dist,omega,theta,phi 2D maps 
     # 6d coordinates order: (dist,omega,theta,phi)
@@ -84,16 +87,19 @@ def l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27): #loss as d
     dist, omega, theta, phi = c6d[..., 0], c6d[..., 1], c6d[..., 2] ,c6d[..., 3]
     return torch.nn.functional.cross_entropy(logits_dist, dist) + torch.nn.functional.cross_entropy(logits_omega, omega) + torch.nn.functional.cross_entropy(logits_theta, theta) + torch.nn.functional.cross_entropy(logits_phi,  phi)
 def ldiffusion(xyz_27, xyz_27_preds, logits_dist, logits_omega, logits_theta, logits_phi, wtrans=PARAMS['wtrans'], wrot=PARAMS['wrot'], dclamp=PARAMS['dclamp'], gamma=PARAMS['gamma'], w2d=PARAMS['w2d']):
+    # Combines lframe with l2d and correct weighting
     return lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma) + (w2d*l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27))
 
 
 class RFdict():
+    # RF Dictionary similar to ifdict
     def __init__(self):
         self.one_letter = ["A", "R", "N", "D", "C", "Q", "E", "G", "H", "I", "L", "K", "M", "F", "P", "S", "T", "W", "Y", "V", "?", "-"] #20 AA, unk, mask. this is taken from rfidffusion.chemical, and will also be used for Neuc
         self.letter_idx = {self.one_letter[i]:i for i in range(len(self.one_letter))}
         self.pad_idx = 22
         self.eos_idx = 23
         self.padding_idx = 22
+
     def encode(self, line):
         idx = []
         for char in line:
@@ -112,12 +118,11 @@ class RFdict():
 
 class neuc_dict():
     def __init__(self):
+        # Class to encode neucleotide data, accounting for indexes with multiple neucleotide possibilities. form of [A, C, G, T, unk]
         self.neucleotides = NEUCLEOTIDES
         self.neuc_nums = NEUC_NUMS
         self.letter_idx = {list(self.neucleotides.keys())[i]:i for i in range(len(self.neucleotides.keys()))}
     def encode(self, line):
-        #print(self.neuc_nums[self.letter_idx[line[0]]])
-        #import pdb; pdb.set_trace()
         enc = torch.zeros(len(line), 5)
         for char in range(len(line)):
             if line[char] in self.neucleotides.keys():
@@ -264,7 +269,6 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
 
     
         proccessed = process_target(f"/vast/og2114/rebase/20220519/output/{self.dataset[idx]['id']}/ranked_0.pdb")
-        #print(proccessed['pdb_idx'])
         MAXLEN = 271
         if torch.tensor(proccessed['xyz_27']).shape[0] >= MAXLEN:
             start = random.randint(0, torch.tensor(proccessed['xyz_27']).shape[0] - (MAXLEN+1))
@@ -315,13 +319,9 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
             dtype=torch.int64,
         ).fill_(self.dictionary.padding_idx)
 
-        if bos:
-            tokens[:, 0] = self.dictionary.get_idx('<af2>')
 
         for idx, el in enumerate(batch):
             tokens[idx, int(bos):(el.size(0) + int(bos))] = el
-
-            # import pdb; pdb.set_trace()
             if eos:
                 tokens[idx, el.size(0) + int(bos)] = self.dictionary.eos_idx
 
@@ -356,7 +356,6 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
         into a collated form:
         {
             'bind': torch.tensor (bind site)
-            'bos_bind': torch.tensor (bos+bind site)
             
             'seq': torch.tensor (protein sequence)
             'xyz_27': torch.tensor (coords input to rf)
@@ -369,9 +368,6 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
 
         def select_by_key(lst: List[Dict], key):
             return [el[key] for el in lst]
-
-
-        ##
         post_proccessed = {
             'bind': torch.stack(select_by_key(batch, 'bind')),
             'seq': torch.stack(select_by_key(batch,'seq')),

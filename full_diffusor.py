@@ -27,9 +27,10 @@ import random
 
 from rfdiffusion.kinematics import xyz_to_t2d
 from rfdiffusion.util import get_torsions, make_frame, torsion_indices, torsion_can_flip, reference_angles
-from rfdiffusion.inference.utils import Denoise
-from rfdiffusion.inference.utils import process_target
+from rfdiffusion.inference.utils import Denoise, process_target
 from rfdiffusion.chemical import aa2long, aa2longalt, torsions, ideal_coords
+from rfdiffusion.inference.model_runners  import Sampler
+from rfdiffusion.diffusion import Diffuser
 
 import diffusor_utils
         
@@ -57,28 +58,27 @@ class RebaseT5(pl.LightningModule):
         print('batch size', self.hparams.model.batch_size)
 
 
+        #RF encoding for sequence
+        self.rfdict= diffusor_utils.RFdict()
         
-        self.ifalphabet= diffusor_utils.RFdict()
-        self.neuc_dict = diffusor_utils.neuc_dict()
-        
-        '''
-        used to record validation data for logging
-        '''
+        #used to record validation data for logging - legacy
         self.val_data = []
         print('initialized')
-        
+
+        # RFdiffusion model stuff
         self.params = diffusor_utils.PARAMS
         self.T = self.params['T']
-        from rfdiffusion.inference.model_runners  import Sampler
-        self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusion/config/finetine/neuc.yaml')) # new config that should load the "Complex_Fold_base_ckpt.pt" model. see line 87 of model_runners
-        self.model = self.sampler.model.train() #ROSETTAFold Model created by sampler
-        self.model.to(self.device)
-        from rfdiffusion.diffusion import Diffuser
+        #  New config that should load the "Complex_Fold_base_ckpt.pt" model. See line 87 of model_runners
+        self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusion/config/finetine/neuc.yaml')) 
+        # ROSETTAFold Model created by sampler. Should be from "Complex_Fold_base_ckpt.pt"
+        self.model = self.sampler.model.train().to(self.device)
+        # alpha creation dictionaries
         self.torsion_indices, self.torsion_can_flip, self.torsion_ref_angles = torsion_indices, torsion_can_flip, reference_angles
+        # Create a diffusor in line with the paper
         self.diffuser = Diffuser(T=self.T,
-	    b_0=self.params['Bt0'], 
-	    b_T=self.params['Bt0'], 
-	    min_sigma=0.01, #IGSO3 docs say to do this 
+            b_0=self.params['Bt0'], 
+            b_T=self.params['Bt0'], 
+            min_sigma=0.01, #IGSO3 docs say to do this 
             max_sigma=self.params['Bt0']+((self.params['BtT'] - self.params['Bt0'])/2), #see page 12
             min_b=self.params['Bt0'], 
             max_b=self.params['BtT'], 
@@ -118,37 +118,19 @@ class RebaseT5(pl.LightningModule):
         '''step lr scheduler'''
         if self.global_step  != 0:
             self.lr_schedulers().step()
+        
         torch.cuda.empty_cache()
         start_time  = time.time()
 
 
-        '''
-        TRAIN STEP FORM!!!
-        1. Generate a list of random timestep "T"s from 1-100 of len(batch size) (might replace with one singular t for whole batch for simplicity)
-        2. Diffuse the protein, select diffused timestep "T", and "T-1"
-        3. Feed bind site through transformer NN
-        4. Using transofrmer output, and diffused_to_t, use rfdiffusion model to get t-1 coords. 
-        5. take loss between t-1_pred, and t-1_truth 
-
-
-        DENOISING:
-            50% of time we use self conditioning. how self-conditioning works, 
-            there will be a place in the model input to feed in the sef conditioning. 
-            self conditioning is when you run the model on x_t+1, and get x_o-pred(condition). 
-            you now feed x_o-pred along with x_t to rf. this essentially I guess says what changes would be 
-            made from timestep t+1 to t, and what needs to be changed now. 
-            good literature on this in chen et. al. https://arxiv.org/abs/2208.04202
-
-
-            If Training with self conditioning -> noise to timestep t+1, then have x_t = denoise(x_t+1) 
-        '''
 
         
         
-        t_global = random.randint(0, self.T)
-        if random.randint(0, 1) == 0 or t_global == self.T:
+        t_global = random.randint(0, self.T) # T
+        
+        if random.randint(0, 1) == 0 or t_global == self.T: # No self conditioning
             loss, _ = self.ministep(batch, t_global)
-        else:
+        else: # Self conditioning
             with torch.no_grad():
                 _, x_prev = self.ministep(batch, t_gloabl + 1)
             torch.cuda.empty_cache()
@@ -192,14 +174,13 @@ class RebaseT5(pl.LightningModule):
         dataset = diffusor_utils.EncodedFastaDatasetWrapper(
             diffusor_utils.CSVDataset(cs, 'train', clust=self.cfg.model.sample_by_cluster),
 
-            self.ifalphabet,
+            self.rfdict,
             apply_eos=False,
             apply_bos=False,
         )
 
 
         dataloader = AsynchronousLoader(DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1, collate_fn=dataset.collater), device=self.device)
-        #dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=1, collate_fn=dataset.collater)
         return dataloader 
     def val_dataloader(self):
         if str(self.cfg.model.seq_identity)== '0.9':
@@ -213,7 +194,7 @@ class RebaseT5(pl.LightningModule):
             cs = self.cfg.io.dnafinal
         dataset = diffusor_utils.EncodedFastaDatasetWrapper(
             diffusor_utils.CSVDataset(cs, 'val', clust=self.cfg.model.sample_by_cluster),
-            self.ifalphabet,
+            self.rfdict,
             apply_eos=False,
             apply_bos=False,
         )
@@ -222,15 +203,8 @@ class RebaseT5(pl.LightningModule):
         return dataloader 
     def configure_optimizers(self):
         opt = torch.optim.AdamW([
-                #{'params': self.ifmodel.parameters(), 'lr': float(self.hparams.model.lr)/5},
                 {'params': self.model.parameters()}],
             lr=float(self.hparams.model.lr))
-        # return opt
-
-        # figure out reaosnable number of total steps
-        # 100k steps
-        # 4% warmup to peak lr
-        # linear decay after that
 
         if self.hparams.model.scheduler:
             return {
@@ -244,36 +218,51 @@ class RebaseT5(pl.LightningModule):
             }
         else:
             return opt
-    def decode(self, seq):
-        '''
-        decode tokens to  string
-        input -> [list] type token representation of sequence to be decoded
-        output -> [string] of sequence decoded
-        '''
-        newseq = ''
-        for tok in seq:
-            newseq += str(self.ifalphabet.get_tok(tok))
-        return newseq
-    def ministep(self, batch, t, xyz_0_prev = None):
-        #print(batch['xyz_27'].device)
 
-        #import pdb; pdb.set_trace()
-        #poses, xyz_27 = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :], batch['seq'][0].to(batch['xyz_27'].device), batch['mask_27'][0][:, :14].to(batch['xyz_27'].device))
+    def ministep(self, batch, t, xyz_0_prev = None):
+                '''
+        RF STEP FORM!!!
+        1. Generate a list of random timestep "T"s from 1-100 of len(batch size) (might replace with one singular t for whole batch for simplicity)
+        2. Diffuse the protein, select diffused timestep "T", and "T-1"
+        3. Feed bind site through transformer NN
+        4. Using transofrmer output, and diffused_to_t, use rfdiffusion model to get t-1 coords. 
+        5. take loss between t-1_pred, and t-1_truth 
+
+
+        DENOISING:
+            50% of time we use self conditioning. how self-conditioning works, 
+            there will be a place in the model input to feed in the sef conditioning. 
+            self conditioning is when you run the model on x_t+1, and get x_o-pred(condition). 
+            you now feed x_o-pred along with x_t to rf. this essentially I guess says what changes would be 
+            made from timestep t+1 to t, and what needs to be changed now. 
+            good literature on this in chen et. al. https://arxiv.org/abs/2208.04202
+
+
+            If step with self conditioning -> noise to timestep t+1, then have x_t = denoise(x_t+1) 
+        '''
+        '''    
+                    DATA PREPROCCESSING 
+        From model_runnsrs Sampler._preprocess mostly
+        '''
+        # Generate diffused coordinates from 0 -> t
         poses, xyz_27 = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :].to('cpu'), batch['seq'][0].to('cpu'), None)
         pose_t = poses[t].unsqueeze(0).to(batch['xyz_27'].device)
         xyz_27 = xyz_27.to(batch['xyz_27'].device)
         #import pdb; pdb.set_trace() 
-        #from model_runnsers Sampler._preprocess mostly
+
+
+        # Protein sequance stuff
         L = batch['seq'].shape[1]
         seq = torch.nn.functional.one_hot(batch['seq'], num_classes=22)
 
+        # create t1d, zeros from idx 0 - 19, 1 in idx 20 for mask, time encoding in idx 21, and bind information from 23-27
         t1d = torch.zeros(1, L, 23).to(batch['xyz_27'].device)
         t1d[..., 20] = 1
         t1d[..., 21] = 1 - (t/self.T)
         padded_bind = torch.cat((batch['bind'], torch.zeros((1, L - batch['bind'].shape[1], batch['bind'].shape[2])).to(batch['xyz_27'].device)), dim=1)
         t1d = torch.cat((t1d, padded_bind), dim=-1)
         t2d = xyz_to_t2d(pose_t.unsqueeze(0))
-                
+        # Rotation-based protein representation
         seq_tmp = torch.full((1, L), 21).to(batch['xyz_27'].device)
         alpha, _, alpha_mask, _ = get_torsions(pose_t.reshape(-1, L, 27, 3), seq_tmp, self.torsion_indices.to(batch['xyz_27'].device), self.torsion_can_flip.to(batch['xyz_27'].device), self.torsion_ref_angles.to(batch['xyz_27'].device)) #these wierd tensors are from rfdiffusion.utils
         alpha_mask = torch.logical_and(alpha_mask, ~torch.isnan(alpha[...,0]))
@@ -282,7 +271,7 @@ class RebaseT5(pl.LightningModule):
         alpha_mask = alpha_mask.reshape(1,-1,L,10,1)
         alpha_t = torch.cat((alpha, alpha_mask), dim=-1).reshape(1, -1, L, 30)
 
-
+        # MSA information. strictly not used in my use-case but neccesary input doe to legacy from rosettafold
         print('LENGTH = ', L)
         seq_in = torch.nn.functional.one_hot(seq_tmp)
         msa_masked = torch.zeros((1, 1, L, 48))
@@ -294,10 +283,12 @@ class RebaseT5(pl.LightningModule):
         msa_full[:, :, :, :22] = seq[None, None]
         msa_full[:, :, 0, 23] = 1.0
         msa_full[:, :, -1, 24] = 1.0
+        # idx -> order of amino acids, just ascending list
         idx_pdb = torch.tensor([i for i in range(L)])
+        # mask, all set to False as no partial masking 
         mask = torch.tensor([False for i in range(L)]).to(batch['bind'].device) 
         
-        
+        # Check devices
         pose_t = pose_t.to(batch['bind'].device)
         t1d = t1d.to(batch['bind'].device)
         t2d = t2d.to(batch['bind'].device).squeeze(0)
@@ -309,6 +300,7 @@ class RebaseT5(pl.LightningModule):
         msa_masked = msa_masked.to(batch['bind'].device)
         msa_full = msa_full.to(batch['bind'].device)
         #import pdb;pdb.set_trace()
+        # Add hydrogen information clone not present from alphafold
         xyz_t = torch.clone(pose_t)
         xyz_t = xyz_t[None, None]
         xyz_t = torch.cat((xyz_t[:, :14, :].squeeze(0), torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3).squeeze(0)
@@ -324,7 +316,6 @@ class RebaseT5(pl.LightningModule):
         print(alpha_t.shape)
         print('MASK_27 = ', mask.shape) 
         import pdb; pdb.set_trace()
-        #msa_prev, pair_prev, px0, state_prev, alpha, logits, plddt = self.model(
         if xyz_0_prev == None:
 
             logits, logits_aa, logits_exp, xyz_pred, alpha_s, lddt = self.model(
@@ -373,7 +364,7 @@ def main(cfg: DictConfig) -> None:
     except: 
         pass
     try:
-        os.mkdir(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
+        os.mkdir(f"/vast/og2114/output_home/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
     except: 
         pass
     wandb.init(settings=wandb.Settings(start_method='thread', code_dir="."))
