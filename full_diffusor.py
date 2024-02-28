@@ -309,7 +309,7 @@ class RebaseT5(pl.LightningModule):
         print("msa_full: ", msa_full.shape)
         print("seq_in: ", seq_in.shape)
         print('seq_tmp: ', seq_tmp.shape)
-        print('xyz_t squeeze, xyz input: 'xyz_t.squeeze(dim=0).shape)
+        print('xyz_t squeeze, xyz input: ', xyz_t.squeeze(dim=0).shape)
         print('idx_pdb: ', idx_pdb.shape)
         print('t1d: ',t1d.shape)
         print('t2d: ', t2d.shape)
