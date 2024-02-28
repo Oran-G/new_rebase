@@ -220,7 +220,7 @@ class RebaseT5(pl.LightningModule):
             return opt
 
     def ministep(self, batch, t, xyz_0_prev = None):
-                '''
+        '''
         RF STEP FORM!!!
         1. Generate a list of random timestep "T"s from 1-100 of len(batch size) (might replace with one singular t for whole batch for simplicity)
         2. Diffuse the protein, select diffused timestep "T", and "T-1"
