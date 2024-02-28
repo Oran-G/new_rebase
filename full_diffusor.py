@@ -295,7 +295,7 @@ class RebaseT5(pl.LightningModule):
         alpha_t = alpha_t.to(batch['bind'].device).squeeze()
         pose_t = pose_t.to(batch['bind'].device)
         seq_in = seq_in.to(batch['bind'].device).float()
-        seq = seq.to(batch['bind'].device).float()
+        seq_tmp = seq_tmp.to(batch['bind'].device).float()
         idx_pdb = idx_pdb.to(batch['bind'].device).float().squeeze(0)
         msa_masked = msa_masked.to(batch['bind'].device)
         msa_full = msa_full.to(batch['bind'].device)
@@ -305,15 +305,16 @@ class RebaseT5(pl.LightningModule):
         xyz_t = xyz_t[None, None]
         xyz_t = torch.cat((xyz_t[:, :14, :].squeeze(0), torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3).squeeze(0)
         #WORKING
-        print("msa_masked = ", msa_masked.shape)
-        print(msa_full.shape)
-        print(seq_in.shape)
-        print(xyz_t.squeeze(dim=0).shape)
-        print(idx_pdb.shape)
-        print(t1d.shape)
-        print(t2d.shape)
-        print(xyz_t.shape)
-        print(alpha_t.shape)
+        print("msa_masked: ", msa_masked.shape)
+        print("msa_full: ", msa_full.shape)
+        print("seq_in: ", seq_in.shape)
+        print('seq_tmp: ', seq_tmp.shape)
+        print('xyz_t squeeze, xyz input: 'xyz_t.squeeze(dim=0).shape)
+        print('idx_pdb: ', idx_pdb.shape)
+        print('t1d: ',t1d.shape)
+        print('t2d: ', t2d.shape)
+        print('xyz_t: ', xyz_t.shape)
+        print('alpha_t: ',alpha_t.shape)
         print('MASK_27 = ', mask.shape) 
         import pdb; pdb.set_trace()
         if xyz_0_prev == None:
@@ -321,7 +322,7 @@ class RebaseT5(pl.LightningModule):
             logits, logits_aa, logits_exp, xyz_pred, alpha_s, lddt = self.model(
                     msa_latent=msa_masked, 
                     msa_full=msa_full,
-                    seq=seq_in,
+                    seq=seq_tmp,
                     xyz=xyz_t.squeeze(0),#[:, :14, :]. xyz_prev in paper
                     idx=idx_pdb,
                     t=torch.tensor(t),
