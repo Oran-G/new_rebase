@@ -69,7 +69,7 @@ class RebaseT5(pl.LightningModule):
         self.params = diffusor_utils.PARAMS
         self.T = self.params['T']
         #  New config that should load the "Complex_Fold_base_ckpt.pt" model. See line 87 of model_runners
-        self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusion/config/finetine/neuc.yaml')) 
+        self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusion/config/finetune/neuc.yaml')) 
         # ROSETTAFold Model created by sampler. Should be from "Complex_Fold_base_ckpt.pt"
         self.model = self.sampler.model.train().to(self.device)
         # alpha creation dictionaries
