@@ -5,7 +5,7 @@ from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrap
 from typing import List, Dict
 import math
 import random
-from rfdiffusion.coord6d import get_coords6d
+from rfdiffusion.coords6d import get_coords6d
 import rfdiffusion.kinematics as kinematics
 from constants import NEUC_NUMS, NEUCLEOTIDES
 import pandas as pd
