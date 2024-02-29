@@ -126,9 +126,9 @@ class RebaseT5(pl.LightningModule):
 
         
         
-        t_global = random.randint(0, self.T) # T
+        t_global = random.randint(0, self.T - 1) # T
         
-        if random.randint(0, 1) == 0 or t_global == self.T: # No self conditioning
+        if random.randint(0, 1) == 0 or t_global == self.T - 1: # No self conditioning
             loss, _ = self.ministep(batch, t_global)
         else: # Self conditioning
             with torch.no_grad():
@@ -148,8 +148,8 @@ class RebaseT5(pl.LightningModule):
 
         torch.cuda.empty_cache()
         with torch.no_grad():
-            t_global = random.randint(0, self.T)
-            if random.randint(0, 1) == 0 or t_global == self.T:
+            t_global = random.randint(0, self.T - 1)
+            if random.randint(0, 1) == 0 or t_global == self.T-1:
                 loss, _ = self.ministep(batch, t_global)
             else:
                 _, x_prev = self.ministep(batch, t_global + 1)
@@ -290,7 +290,7 @@ class RebaseT5(pl.LightningModule):
         
         # Check devices
         pose_t = pose_t.to(batch['bind'].device)
-        t1d = t1d.to(batch['bind'].device)
+        t1d = t1d.to(batch['bind'].device).unsqueeze(0)
         t2d = t2d.to(batch['bind'].device).squeeze(0)
         alpha_t = alpha_t.to(batch['bind'].device).squeeze()
         pose_t = pose_t.to(batch['bind'].device)
@@ -302,8 +302,10 @@ class RebaseT5(pl.LightningModule):
         #import pdb;pdb.set_trace()
         # Add hydrogen information clone not present from alphafold
         xyz_t = torch.clone(pose_t)
-        xyz_t = xyz_t[None, None]
-        xyz_t = torch.cat((xyz_t[:, :14, :].squeeze(0), torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3).squeeze(0)
+        #import pdb; pdb.set_trace()
+        #xyz_t = xyz_t[None, None]
+
+        #xyz_t = torch.cat((xyz_t[:, :14, :].squeeze(0), torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3).squeeze(0)
         #WORKING
         print("msa_masked: ", msa_masked.shape)
         print("msa_full: ", msa_full.shape)
@@ -322,9 +324,9 @@ class RebaseT5(pl.LightningModule):
             logits, logits_aa, logits_exp, xyz_pred, alpha_s, lddt = self.model(
                     msa_latent=msa_masked, 
                     msa_full=msa_full,
-                    seq=seq_tmp,
-                    xyz=xyz_t.squeeze(0),#[:, :14, :]. xyz_prev in paper
-                    idx=idx_pdb,
+                    seq=seq_in,
+                    xyz=xyz_t,#[:, :14, :]. xyz_prev in paper
+                    idx=idx_pdb.unsqueeze(0),
                     t=torch.tensor(t),
                     t1d=t1d,
                     t2d=t2d,
