@@ -270,12 +270,12 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
     
         proccessed = process_target(f"/vast/og2114/rebase/20220519/output/{self.dataset[idx]['id']}/ranked_0.pdb")
         MAXLEN = PARAMS['crop']
-        if =proccessed['xyz_27'].shape[0] >= MAXLEN:
-            start = random.randint(0, =proccessed['xyz_27'].shape[0] - (MAXLEN+1))
+        if proccessed['xyz_27'].shape[0] >= MAXLEN:
+            start = random.randint(0, proccessed['xyz_27'].shape[0] - (MAXLEN+1))
             end = start + MAXLEN
         else:
             start = 0
-            end = =proccessed['xyz_27'].shape[0]
+            end  =proccessed['xyz_27'].shape[0]
         #import pdb; pdb.set_trace()
         return {
             'bind':self.neuc_dict.encode(self.dataset[idx]['bind']),
