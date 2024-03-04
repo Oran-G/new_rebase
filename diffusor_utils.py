@@ -18,8 +18,8 @@ PARAMS = { # see page 33/table 6
     "dclamp":10, 
     "gamma":.99, 
     "w2d":1.0,
-    "lr":.001,
-    "lr_decay":.001,
+    "lr":.0005,
+    "lr_decay":.95,
     "Bt0": .01, # formula is Bt0 + (t/t)(BtT - Bt0)
     "BtT": .07,
     "Br0": 1.06, # formula is (t*Br0) + .5*(t/T)**2(BrT - Br0)
@@ -269,7 +269,7 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
 
     
         proccessed = process_target(f"/vast/og2114/rebase/20220519/output/{self.dataset[idx]['id']}/ranked_0.pdb")
-        MAXLEN = 271
+        MAXLEN = PARAMS['crop']
         if =proccessed['xyz_27'].shape[0] >= MAXLEN:
             start = random.randint(0, =proccessed['xyz_27'].shape[0] - (MAXLEN+1))
             end = start + MAXLEN

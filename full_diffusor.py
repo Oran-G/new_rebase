@@ -209,11 +209,10 @@ class RebaseT5(pl.LightningModule):
         if self.hparams.model.scheduler:
             return {
                 'optimizer': opt,
-                'lr_scheduler': get_polynomial_decay_schedule_with_warmup(
+                'lr_scheduler': torch.optim.lr_scheduler.StepLR(
                     optimizer=opt,
-                    num_training_steps=300000,
-                    num_warmup_steps=100, #was 4000
-                    power=self.hparams.model.lrpower,
+                    step_size=10000,
+                    gamma=.95,
                 )
             }
         else:
@@ -401,8 +400,7 @@ def main(cfg: DictConfig) -> None:
         # check_val_every_n_epoch=1000,
         # max_epochs=cfg.model.max_epochs,
         default_root_dir=cfg.io.checkpoints,
-        #accumulate_grad_batches=8),
-        accumulate_grad_batches=4,
+        accumulate_grad_batches=64,
         precision=cfg.model.precision,
         strategy='ddp',
         #strategy='cpu',
