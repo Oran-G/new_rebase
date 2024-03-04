@@ -63,7 +63,7 @@ def dframe(x, xpred, wtrans, wrot, dclamp):
         return math.sqrt(total / x[0].shape[0])
 def lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma): #loss described on page 28.
     # dframe with exponantial time weighting
-    if len(x[0].shape) == 5: # Account for batched input
+    if len(xyz_27[0].shape) == 5: # Account for batched input
         batch = []
         for b in range(xyz_27.shape[0]):
             batch.append(lframe(xyz_27[b], xyz_27_preds[b], wtrans, wrot, dclamp, gamma))
