@@ -270,18 +270,18 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
     
         proccessed = process_target(f"/vast/og2114/rebase/20220519/output/{self.dataset[idx]['id']}/ranked_0.pdb")
         MAXLEN = 271
-        if torch.tensor(proccessed['xyz_27']).shape[0] >= MAXLEN:
-            start = random.randint(0, torch.tensor(proccessed['xyz_27']).shape[0] - (MAXLEN+1))
+        if =proccessed['xyz_27'].shape[0] >= MAXLEN:
+            start = random.randint(0, =proccessed['xyz_27'].shape[0] - (MAXLEN+1))
             end = start + MAXLEN
         else:
             start = 0
-            end = torch.tensor(proccessed['xyz_27']).shape[0]
+            end = =proccessed['xyz_27'].shape[0]
         #import pdb; pdb.set_trace()
         return {
-            'bind':torch.tensor( self.neuc_dict.encode(self.dataset[idx]['bind'])),
-            'xyz_27': torch.tensor(proccessed['xyz_27'])[start: end], #tensor of atomic coords
-            'mask_27': torch.tensor(proccessed['mask_27'][start: end]), #tensor of true/false for if the atoms exist
-            'seq': torch.tensor(proccessed['seq'][start:end]), #tensor of idx
+            'bind':self.neuc_dict.encode(self.dataset[idx]['bind']),
+            'xyz_27': proccessed['xyz_27'][start: end], #tensor of atomic coords
+            'mask_27': proccessed['mask_27'][start: end], #tensor of true/false for if the atoms exist
+            'seq': proccessed['seq'][start:end], #tensor of idx
             'idx_pdb': torch.tensor([ i+1 for i in range(end -start)]),
 
         }
