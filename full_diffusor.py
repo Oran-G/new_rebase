@@ -204,7 +204,7 @@ class RebaseT5(pl.LightningModule):
     def configure_optimizers(self):
         opt = torch.optim.AdamW([
                 {'params': self.model.parameters()}],
-            lr=float(self.hparams.model.lr))
+            lr=float(self.params['lr']))
 
         if self.hparams.model.scheduler:
             return {
@@ -212,7 +212,7 @@ class RebaseT5(pl.LightningModule):
                 'lr_scheduler': torch.optim.lr_scheduler.StepLR(
                     optimizer=opt,
                     step_size=10000,
-                    gamma=.95,
+                    gamma=self.params['lr_decay'],
                 )
             }
         else:
@@ -400,14 +400,12 @@ def main(cfg: DictConfig) -> None:
         # check_val_every_n_epoch=1000,
         # max_epochs=cfg.model.max_epochs,
         default_root_dir=cfg.io.checkpoints,
-        accumulate_grad_batches=64,
+        accumulate_grad_batches=model.params['batch'],
         precision=cfg.model.precision,
         strategy='ddp',
-        #strategy='cpu',
-        log_every_n_steps=5,
+        log_every_n_steps=10,
         progress_bar_refresh_rate=10,
-        max_epochs=-1,
-        #limit_train_batches=.1,
+        max_epochs=7,
         auto_scale_batch_size="power",
         gradient_clip_val=0.3,
 
