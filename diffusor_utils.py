@@ -54,12 +54,12 @@ def dframe(x, xpred, wtrans, wrot, dclamp):
     if len(x[0].shape) == 4: # Account for batched input
         batch = []
         for b in range(x[0].shape[0]):
-            batch.append(dframe((x[0, b], x[1, b]), (x_pred[0, b], x_pred[1, b]), wtrans, wrot, dclamp))
+            batch.append(dframe((x[0, b], x[1, b]), (xpred[0, b], xpred[1, b]), wtrans, wrot, dclamp))
         return torch.stack(batch)
     else:
         total = 0
         for l in range(x[0].shape[0]):
-            total += wtrans*(min(torch.linalg.norm((x[1] - x_pred[1]), ord=2).pow(2), dclamp)**2) + wrot*((torch.linalg.norm((torch.eye(3) - (xpred[0].t() @ x[0]))).pow(2))**2)
+            total += wtrans*(min(torch.linalg.norm((x[1] - xpred[1]), ord=2).pow(2), dclamp)**2) + wrot*((torch.linalg.norm((torch.eye(3) - (xpred[0].t() @ x[0]))).pow(2))**2)
         return math.sqrt(total / x[0].shape[0])
 def lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma): #loss described on page 28.
     # dframe with exponantial time weighting
