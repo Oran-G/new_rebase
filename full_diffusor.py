@@ -261,7 +261,7 @@ class RebaseT5(pl.LightningModule):
         t1d[..., 21] = 1 - (t/self.T)
         padded_bind = torch.cat((batch['bind'], torch.zeros((1, L - batch['bind'].shape[1], batch['bind'].shape[2])).to(batch['xyz_27'].device)), dim=1)
         t1d = torch.cat((t1d, padded_bind), dim=-1)
-        t2d = xyz_to_t2d(pose_t.unsqueeze(0))
+        t2d = torch.cat((xyz_to_t2d(pose_t.unsqueeze(0)), torch.zeros((1, 1, L, L, 3), device=pose_t.device)), dim=-1)
         # Rotation-based protein representation
         seq_tmp = torch.full((1, L), 21).to(batch['xyz_27'].device)
         alpha, _, alpha_mask, _ = get_torsions(pose_t.reshape(-1, L, 27, 3), seq_tmp, self.torsion_indices.to(batch['xyz_27'].device), self.torsion_can_flip.to(batch['xyz_27'].device), self.torsion_ref_angles.to(batch['xyz_27'].device)) #these wierd tensors are from rfdiffusion.utils
@@ -291,12 +291,12 @@ class RebaseT5(pl.LightningModule):
         # Check devices
         pose_t = pose_t.to(batch['bind'].device)
         t1d = t1d.to(batch['bind'].device).unsqueeze(0)
-        t2d = t2d.to(batch['bind'].device).squeeze(0)
-        alpha_t = alpha_t.to(batch['bind'].device).squeeze()
+        t2d = t2d.to(batch['bind'].device)
+        alpha_t = alpha_t.to(batch['bind'].device)
         pose_t = pose_t.to(batch['bind'].device)
         seq_in = seq_in.to(batch['bind'].device).float()
         seq_tmp = seq_tmp.to(batch['bind'].device).float()
-        idx_pdb = idx_pdb.to(batch['bind'].device).float().squeeze(0)
+        idx_pdb = idx_pdb.to(batch['bind'].device).float()
         msa_masked = msa_masked.to(batch['bind'].device)
         msa_full = msa_full.to(batch['bind'].device)
         #import pdb;pdb.set_trace()
@@ -349,6 +349,7 @@ class RebaseT5(pl.LightningModule):
                     motif_mask=mask,
                     )
         logits_dist, logits_omega, logits_theta, logits_phi = logits
+        import pdb; pdb.set_trace()
         loss = diffusor_utils.ldiffusion(xyz_27, xyz_pred, logits_dist, logits_omega, logits_theta, logits_phi) 
         return loss, xyz_pred[-1] #check to make sure xyz_pred last structure is -1
 
