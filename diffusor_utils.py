@@ -47,7 +47,7 @@ def gramschmidt(z: torch.tensor):
 def xyztox(xyz_27: torch.tensor):
     # Construct x = (y, z) from xyz coordinates
     z = xyz_27[:, :3, :]
-    y = gramschmidt(x)
+    y = gramschmidt(z)
     return (y, z)
 def dframe(x, xpred, wtrans, wrot, dclamp):
     # dframe loss 
