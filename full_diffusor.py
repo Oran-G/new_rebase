@@ -132,10 +132,10 @@ class RebaseT5(pl.LightningModule):
             loss, _ = self.ministep(batch, t_global)
         else: # Self conditioning
             with torch.no_grad():
-                _, x_prev = self.ministep(batch, t_gloabl + 1)
+                _, x_prev = self.ministep(batch, t_global + 1)
             torch.cuda.empty_cache()
             loss, _ = self.ministep(batch, t_global, x_prev)
-        self.log('train_loss', float(loss.item())/(.99**(self.T - t)), on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log('train_loss', float(loss.item())/(.99**(self.T - t_global)), on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {
             'loss': loss,
             'batch_size': batch['seq'].size(0)
@@ -156,7 +156,7 @@ class RebaseT5(pl.LightningModule):
                 torch.cuda.empty_cache()
                 loss, _ = self.ministep(batch, t_global, x_prev)
                 
-        self.log('val_loss', float(loss.item())/(.99**(self.T - t)), on_step=True, on_epoch=True, prog_bar=False, logger=True)
+        self.log('val_loss', float(loss.item())/(.99**(self.T - t_global)), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         self.log('val_time', time.time()- start_time, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {
             'loss': loss,
@@ -318,7 +318,7 @@ class RebaseT5(pl.LightningModule):
         print('xyz_t: ', xyz_t.shape)
         print('alpha_t: ',alpha_t.shape)
         print('MASK_27 = ', mask.shape) 
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         if xyz_0_prev == None:
 
             logits, logits_aa, logits_exp, xyz_pred, alpha_s, lddt = self.model(
@@ -335,12 +335,14 @@ class RebaseT5(pl.LightningModule):
                     motif_mask=mask,
                     )
         else: #for self conditioning
+            xyz_0_prev = xyz_0_prev.to(batch['bind'].device)
+            print('xyz_0_prev = ', xyz_0_prev.shape)
             logits, logits_aa, logits_exp, xyz_pred, alpha_s, lddt = self.model(
                     msa_latent=msa_masked, 
                     msa_full=msa_full,
                     seq=seq_in,
-                    xyz=xyz_t.squeeze(),#[:, :14, :]. xyz_prev in paper
-                    idx=idx_pdb,
+                    xyz=xyz_t,#[:, :14, :]. xyz_prev in paper
+                    idx=idx_pdb.unsqueeze(0),
                     t=torch.tensor(t),
                     t1d=t1d,
                     t2d=t2d,
@@ -349,8 +351,8 @@ class RebaseT5(pl.LightningModule):
                     motif_mask=mask,
                     )
         logits_dist, logits_omega, logits_theta, logits_phi = logits
-        import pdb; pdb.set_trace()
-        loss = diffusor_utils.ldiffusion(xyz_27, xyz_pred, logits_dist, logits_omega, logits_theta, logits_phi) 
+        #import pdb; pdb.set_trace()
+        loss = diffusor_utils.ldiffusion(xyz_27, xyz_pred.squeeze(1), logits_dist, logits_omega, logits_theta, logits_phi) 
         return loss, xyz_pred[-1] #check to make sure xyz_pred last structure is -1
 
 

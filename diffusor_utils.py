@@ -59,7 +59,7 @@ def dframe(x, xpred, wtrans, wrot, dclamp):
     else:
         total = 0
         for l in range(x[0].shape[0]):
-            total += wtrans*(min(torch.linalg.norm((x[1] - xpred[1]), ord=2).pow(2), dclamp)**2) + wrot*((torch.linalg.norm((torch.eye(3) - (xpred[0].t() @ x[0]))).pow(2))**2)
+            total += wtrans*(min(torch.linalg.norm((x[1][l] - xpred[1][l]), ord=2), dclamp)**2) + wrot*((torch.linalg.norm((torch.eye(3).to(xpred[0].device) - (xpred[0][l].t() @ x[0][l]))))**2)
         return math.sqrt(total / x[0].shape[0])
 def lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma): #loss described on page 28.
     # dframe with exponantial time weighting
@@ -83,12 +83,12 @@ def l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27): #loss as d
     #c6d : pytorch tensor of shape [batch,nres,nres,4]
     #      stores stacked dist,omega,theta,phi 2D maps 
     # 6d coordinates order: (dist,omega,theta,phi)
-    c6d = kinematics.c6d_to_bins(kinematics.xyz_to_c6d(xyz_27)[0])
+    c6d = kinematics.c6d_to_bins(kinematics.xyz_to_c6d(xyz_27)[0]).long()
     dist, omega, theta, phi = c6d[..., 0], c6d[..., 1], c6d[..., 2] ,c6d[..., 3]
     return torch.nn.functional.cross_entropy(logits_dist, dist) + torch.nn.functional.cross_entropy(logits_omega, omega) + torch.nn.functional.cross_entropy(logits_theta, theta) + torch.nn.functional.cross_entropy(logits_phi,  phi)
 def ldiffusion(xyz_27, xyz_27_preds, logits_dist, logits_omega, logits_theta, logits_phi, wtrans=PARAMS['wtrans'], wrot=PARAMS['wrot'], dclamp=PARAMS['dclamp'], gamma=PARAMS['gamma'], w2d=PARAMS['w2d']):
     # Combines lframe with l2d and correct weighting
-    return lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma) + (w2d*l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27))
+    return lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma) + (w2d*l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27.unsqueeze(0)))
 
 
 class RFdict():
