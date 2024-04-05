@@ -244,7 +244,7 @@ class RebaseT5(pl.LightningModule):
         From model_runnsrs Sampler._preprocess mostly
         '''
         # Generate diffused coordinates from 0 -> t
-        t = time.monotonic()
+        ti = time.monotonic()
         poses, xyz_27 = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :].to('cpu'), batch['seq'][0].to('cpu'), None)
         pose_t = poses[t].unsqueeze(0).to(batch['xyz_27'].device)
         xyz_27 = xyz_27.to(batch['xyz_27'].device)
@@ -319,8 +319,8 @@ class RebaseT5(pl.LightningModule):
         # print('alpha_t: ',alpha_t.shape)
         # print('MASK_27 = ', mask.shape) 
         # import pdb; pdb.set_trace()
-        print(f'time for preproccessing: {time.monotonic() - t}')
-        t = time.monotonic()
+        print(f'time for preproccessing: {time.monotonic() - ti}')
+        ti = time.monotonic()
         if xyz_0_prev == None:
 
             logits, logits_aa, logits_exp, xyz_pred, alpha_s, lddt = self.model(
@@ -355,7 +355,7 @@ class RebaseT5(pl.LightningModule):
         logits_dist, logits_omega, logits_theta, logits_phi = logits
         #import pdb; pdb.set_trace()
         loss = diffusor_utils.ldiffusion(xyz_27, xyz_pred.squeeze(1), logits_dist, logits_omega, logits_theta, logits_phi) 
-        print(f'time for model prediction: {time.monotonic() - t}')
+        print(f'time for model prediction: {time.monotonic() - ti}')
         return loss, xyz_pred[-1] #check to make sure xyz_pred last structure is -1
 
 
