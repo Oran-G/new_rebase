@@ -319,7 +319,8 @@ class RebaseT5(pl.LightningModule):
         # print('alpha_t: ',alpha_t.shape)
         # print('MASK_27 = ', mask.shape) 
         # import pdb; pdb.set_trace()
-        print(f'model device: {self.model.device}')
+        print(f'self device: {self.device}')
+        print(f'batch device: {xyz_t.device}')
         print(f'time for preproccessing: {time.monotonic() - ti}')
         ti = time.monotonic()
         if xyz_0_prev == None:
