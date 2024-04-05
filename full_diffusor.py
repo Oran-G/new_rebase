@@ -244,6 +244,7 @@ class RebaseT5(pl.LightningModule):
         From model_runnsrs Sampler._preprocess mostly
         '''
         # Generate diffused coordinates from 0 -> t
+        t = time.monotonic()
         poses, xyz_27 = self.diffuser.diffuse_pose(batch['xyz_27'][0][:, :14, :].to('cpu'), batch['seq'][0].to('cpu'), None)
         pose_t = poses[t].unsqueeze(0).to(batch['xyz_27'].device)
         xyz_27 = xyz_27.to(batch['xyz_27'].device)
@@ -306,18 +307,20 @@ class RebaseT5(pl.LightningModule):
 
         #xyz_t = torch.cat((xyz_t[:, :14, :].squeeze(0), torch.full((1, 1, L, 13, 3), float('nan')).to(self.device)), dim=3).squeeze(0)
         #WORKING
-        print("msa_masked: ", msa_masked.shape)
-        print("msa_full: ", msa_full.shape)
-        print("seq_in: ", seq_in.shape)
-        print('seq_tmp: ', seq_tmp.shape)
-        print('xyz_t squeeze, xyz input: ', xyz_t.squeeze(dim=0).shape)
-        print('idx_pdb: ', idx_pdb.shape)
-        print('t1d: ',t1d.shape)
-        print('t2d: ', t2d.shape)
-        print('xyz_t: ', xyz_t.shape)
-        print('alpha_t: ',alpha_t.shape)
-        print('MASK_27 = ', mask.shape) 
+        # print("msa_masked: ", msa_masked.shape)
+        # print("msa_full: ", msa_full.shape)
+        # print("seq_in: ", seq_in.shape)
+        # print('seq_tmp: ', seq_tmp.shape)
+        # print('xyz_t squeeze, xyz input: ', xyz_t.squeeze(dim=0).shape)
+        # print('idx_pdb: ', idx_pdb.shape)
+        # print('t1d: ',t1d.shape)
+        # print('t2d: ', t2d.shape)
+        # print('xyz_t: ', xyz_t.shape)
+        # print('alpha_t: ',alpha_t.shape)
+        # print('MASK_27 = ', mask.shape) 
         # import pdb; pdb.set_trace()
+        print(f'time for preproccessing: {time.monotonic() - t}')
+        t = time.monotonic()
         if xyz_0_prev == None:
 
             logits, logits_aa, logits_exp, xyz_pred, alpha_s, lddt = self.model(
@@ -352,6 +355,7 @@ class RebaseT5(pl.LightningModule):
         logits_dist, logits_omega, logits_theta, logits_phi = logits
         #import pdb; pdb.set_trace()
         loss = diffusor_utils.ldiffusion(xyz_27, xyz_pred.squeeze(1), logits_dist, logits_omega, logits_theta, logits_phi) 
+        print(f'time for model prediction: {time.monotonic() - t}')
         return loss, xyz_pred[-1] #check to make sure xyz_pred last structure is -1
 
 
