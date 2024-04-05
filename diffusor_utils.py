@@ -150,7 +150,7 @@ def reset_all_weights(model: nn.Module) -> None:
     model.apply(fn=weight_reset)
 
 class CSVDataset(Dataset):
-    def __init__(self, csv_path, split, split_seed=42, supervised=True, plddt=85, clust=False):
+    def __init__(self, csv_path, split, split_seed=42, supervised=True, plddt=85, clust=True):
         super().__init__()
         """
         args:
