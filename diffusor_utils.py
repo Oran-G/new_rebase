@@ -25,7 +25,7 @@ PARAMS = { # see page 33/table 6
     "Br0": 1.06, # formula is (t*Br0) + .5*(t/T)**2(BrT - Br0)
     "BrT": 1.77,
     "crd_scale":0.25,
-    "crop": 381, # default to 276 for last working example on my system
+    "crop": 271, # default to 271 for last working example on my system, RF did 381 somehow
     "batch": 64
 }
 def gramschmidt(z: torch.tensor):
