@@ -135,6 +135,7 @@ class RebaseT5(pl.LightningModule):
                 _, x_prev = self.ministep(batch, t_global + 1)
             torch.cuda.empty_cache()
             loss, _ = self.ministep(batch, t_global, x_prev)
+        print(f'train loss: {float(loss.item())/(.99**(self.T - t_global))}')
         self.log('train_loss', float(loss.item())/(.99**(self.T - t_global)), on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {
             'loss': loss,
@@ -155,7 +156,7 @@ class RebaseT5(pl.LightningModule):
                 _, x_prev = self.ministep(batch, t_global + 1)
                 torch.cuda.empty_cache()
                 loss, _ = self.ministep(batch, t_global, x_prev)
-                
+        print(f'val loss: {float(loss.item())/(.99**(self.T - t_global))}')
         self.log('val_loss', float(loss.item())/(.99**(self.T - t_global)), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         self.log('val_time', time.time()- start_time, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {
