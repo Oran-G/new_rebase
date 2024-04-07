@@ -26,7 +26,7 @@ PARAMS = { # see page 33/table 6
     "BrT": 1.77,
     "crd_scale":0.25,
     "crop": 271, # default to 271 for last working example on my system, RF did 381 somehow
-    "batch": 64
+    "batch": 16
 }
 def gramschmidt(z: torch.tensor):
     # create r from z using gramschmidt method described pg. 3 supplemental methods
