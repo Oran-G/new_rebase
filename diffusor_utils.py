@@ -77,7 +77,7 @@ def lframe(xyz_27, xyz_27_preds, wtrans, wrot, dclamp, gamma): #loss described o
             gamma_term = (gamma**(xyz_27_preds.shape[0] - i))
             full_total += gamma_term*(dframe(xyztox(xyz_27), xyztox(xyz_27_preds[i]), wtrans, wrot, dclamp)**2)
             divisor += gamma_term
-        return full_total / gamma_term
+        return full_total / divisor
 def l2d(logits_dist, logits_omega, logits_theta, logits_phi, xyz_27): #loss as described on page 30
     # Logit-based loss
     #c6d : pytorch tensor of shape [batch,nres,nres,4]
