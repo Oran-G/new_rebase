@@ -72,6 +72,19 @@ class RebaseT5(pl.LightningModule):
         self.sampler = Sampler(conf=OmegaConf.load('/vast/og2114/RFdiffusion/config/finetune/neuc.yaml')) 
         # ROSETTAFold Model created by sampler. Should be from "Complex_Fold_base_ckpt.pt"
         self.model = self.sampler.model.train().to(self.device)
+        #Reset the extra weights of the complex model
+        model_reg = self.Sampler(conf=OmegaConf.load('//vast/og2114/RFdiffusion/config/inference/base.yaml'))
+        state_dict_x1 = self.model.state_dict()
+        state_dict_x2 = model_reg.state_dict()
+        # Iterate through complex's state dict
+        for name, param in state_dict_x1.items():
+            # Check if this parameter is not in reg
+            if name not in state_dict_x2:
+                # If not, set complex's parameter to zeros
+                # Note: The shape of the parameter is used to create a new tensor of zeros
+                param.data = torch.zeros_like(param)
+
+
         # alpha creation dictionaries
         self.torsion_indices, self.torsion_can_flip, self.torsion_ref_angles = torsion_indices, torsion_can_flip, reference_angles
         # Create a diffusor in line with the paper
@@ -412,7 +425,7 @@ def main(cfg: DictConfig) -> None:
         strategy='ddp',
         log_every_n_steps=10,
         progress_bar_refresh_rate=10,
-        max_epochs=7,
+        max_epochs=-1,
         auto_scale_batch_size="power",
         gradient_clip_val=0.3,
 
