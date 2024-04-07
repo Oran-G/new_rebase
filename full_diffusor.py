@@ -150,6 +150,8 @@ class RebaseT5(pl.LightningModule):
             loss, _ = self.ministep(batch, t_global, x_prev)
         print(f't: {t_global} gamma {(.99**(self.T - t_global))} train loss: {float(loss.item())/(.99**(self.T - t_global))}')
         self.log('train_loss', float(loss.item())/(.99**(self.T - t_global)), on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log('train_t', t_global, on_step=True, on_epoch=True, prog_bar=False, logger=True)
+        self.log('train_gamma', (.99**(self.T - t_global)), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         return {
             'loss': loss,
             'batch_size': batch['seq'].size(0)
@@ -172,6 +174,8 @@ class RebaseT5(pl.LightningModule):
         print(f't: {t_global} gamma {(.99**(self.T - t_global))} val loss: {float(loss.item())/(.99**(self.T - t_global))}')
         self.log('val_loss', float(loss.item())/(.99**(self.T - t_global)), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         self.log('val_time', time.time()- start_time, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log('val_t', t_global, on_step=True, on_epoch=True, prog_bar=False, logger=True)
+        self.log('val_gamma', (.99**(self.T - t_global)), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         return {
             'loss': loss,
             'batch_size': batch['seq'].size(0)
