@@ -225,7 +225,7 @@ class RebaseT5(pl.LightningModule):
                 'optimizer': opt,
                 'lr_scheduler': torch.optim.lr_scheduler.StepLR(
                     optimizer=opt,
-                    step_size=10000,
+                    step_size=500,
                     gamma=self.params['lr_decay'],
                 )
             }
