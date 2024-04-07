@@ -73,7 +73,7 @@ class RebaseT5(pl.LightningModule):
         # ROSETTAFold Model created by sampler. Should be from "Complex_Fold_base_ckpt.pt"
         self.model = self.sampler.model.train().to(self.device)
         #Reset the extra weights of the complex model
-        model_reg = self.Sampler(conf=OmegaConf.load('//vast/og2114/RFdiffusion/config/inference/base.yaml'))
+        model_reg = Sampler(conf=OmegaConf.load('//vast/og2114/RFdiffusion/config/inference/base.yaml')).model.train().to(self.device)
         state_dict_x1 = self.model.state_dict()
         state_dict_x2 = model_reg.state_dict()
         # Iterate through complex's state dict
