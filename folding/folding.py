@@ -3,7 +3,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from transformers import T5Config, T5ForConditionalGeneration, get_linear_schedule_with_warmup,  get_polynomial_decay_schedule_with_warmup, BertGenerationConfig, BertGenerationDecoder
 from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrapperDataset
-from constants import tokenization, neucleotides
+from ..constants import tokenization, neucleotides
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from omegaconf import DictConfig, OmegaConf
