@@ -219,7 +219,7 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
         }
         return post_proccessed
 
-class EncoderDataset(Dataset)
+class EncoderDataset(Dataset):
     def __init__(self, dataset, batch_size, device, path, cluster=True, eos=True):
 
         super().__init__()
@@ -235,6 +235,7 @@ class EncoderDataset(Dataset)
             self.dataloader = AsynchronousLoader(DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=dataset.collater), device=self.device)
             self.data = []
             self.eos = eos
+            print(f'creating embeddings saving to {path}')
             self.ifmodel, self.ifalphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
             for step, batch in enumerate(self.dataloader):
                 encodings = self.ifmodel(batch['seq'], batch['coord_conf'], batch['coord_pad'])
