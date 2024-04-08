@@ -26,6 +26,7 @@ import json
 import wandb
 import csv
 import random
+import folding_utils
 '''
 TODOs (10/17/21):
 * figure out reasonable train/valid set
@@ -165,16 +166,11 @@ class RebaseT5(pl.LightningModule):
         start_time = time.time()
 
         torch.cuda.empty_cache()
-        
-        token_representations = self.ifmodel.encoder(batch['coords'], batch['coord_pad'], batch['coord_conf'])
-        #implement DESTROYER
-        if self.hparams.esm.destroy == True:
-            token_representations['encoder_out'][0][token_representations] = 0
 
         label = batch['bind']
         label[label==self.ifalphabet.padding_idx] = -100
         try:
-            pred = self.model(encoder_outputs=[torch.transpose(token_representations['encoder_out'][0], 0, 1)], labels=label)
+            pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
         except RuntimeError:
             print(token_representations['encoder_out'], batch, batch_idx)
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
@@ -204,8 +200,8 @@ class RebaseT5(pl.LightningModule):
         if self.cfg.model.dna_clust == True:
             cs = self.cfg.io.dnafinal
         print(cs)
-        dataset = EncodedFastaDatasetWrapper(
-            CSVDataset(cs, 'train', clust=self.cfg.model.sample_by_cluster),
+        dataset = folding_utils.EncodedFastaDatasetWrapper(
+            folding_utils.CSVDataset(cs, 'train', clust=self.cfg.model.sample_by_cluster),
 
             self.ifalphabet,
             apply_eos=True,
@@ -213,8 +209,8 @@ class RebaseT5(pl.LightningModule):
         )
         
 
-        encoder_dataset = EncoderDataset(dataset, batch_size=self.batch_size, device=self.device, path=self.cfg.io.val_embedded), 
-        dataloader = AsynchronousLoader(DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater), device=self.device)
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=2, device=self.device, path=self.cfg.io.val_embedded), 
+        dataloader = AsynchronousLoader(DataLoader(encoder_dataset, batch_size=2, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater), device=self.device)
         return dataloader 
     def val_dataloader(self):
         if str(self.cfg.model.seq_identity)== '0.9':
@@ -230,13 +226,13 @@ class RebaseT5(pl.LightningModule):
             cs = self.cfg.io.dnafinal
         print(self.cfg.model.seq_identity)
         print(cs)
-        dataset = EncodedFastaDatasetWrapper(
-            CSVDataset(cs, 'val', clust=self.cfg.model.sample_by_cluster),
+        dataset = folding_utils.EncodedFastaDatasetWrapper(
+            folding_utils.CSVDataset(cs, 'val', clust=self.cfg.model.sample_by_cluster),
             self.ifalphabet,
             apply_eos=True,
             apply_bos=False,
         )
-        encoder_dataset = EncoderDataset(dataset, batch_size=self.batch_size, device=self.device, path=self.cfg.io.val_embedded), 
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=self.batch_size, device=self.device, path=self.cfg.io.val_embedded), 
         dataloader = AsynchronousLoader(DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater), device=self.device)
         return dataloader 
 
@@ -375,6 +371,7 @@ def main(cfg: DictConfig) -> None:
     acc_callback = ModelCheckpoint(monitor="val_acc_epoch", filename=f'acc-{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True, save_top_k=5) 
     swa_callback = pl.callbacks.StochasticWeightAveraging(swa_lrs=1e-2)
     lr_monitor = LearningRateMonitor(logging_interval='step')
+    pl.pytorch.callbacks.BatchSizeFinder()
     print(model.batch_size)
     print('tune: ')
     model.batch_size = 2
@@ -397,7 +394,7 @@ def main(cfg: DictConfig) -> None:
             checkpoint_callback, 
             lr_monitor, 
             acc_callback, 
-            #swa_callback,
+            #swa
             ],
         # check_val_every_n_epoch=1000,
         # max_epochs=cfg.model.max_epochs,
