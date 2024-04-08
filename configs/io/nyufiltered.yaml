@@ -14,3 +14,6 @@ final: /vast/og2114/rebase/data/filtered_data.csv
 temp: /vast/og2114/rebase/data/filtered_data_clust.tsv
 checkpoints: /vast/og2114/output_home/models
 wandb_dir: /vast/og2114/output_home/logs
+
+train_embedded: /vast/og2114/rebase/data/train_embedded.pkl
+val_embedded: /vast/og2114/rebase/data/val_embedded.pkl

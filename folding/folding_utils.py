@@ -219,30 +219,41 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
         }
         return post_proccessed
 
-class encoder_dataset(Dataset)
-    def __init__(self, dataset, batch_size, device, cluster=True, eos=True):
+class EncoderDataset(Dataset)
+    def __init__(self, dataset, batch_size, device, path, cluster=True, eos=True):
 
         super().__init__()
         self.dataset = dataset
         self.device = device
         self.batch_size = batch_size
-        self.dataloader = AsynchronousLoader(DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=dataset.collater), device=self.device)
-        self.data = []
-        self.eos = eos
-        self.ifmodel, self.ifalphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
-        for step, batch in enumerate(self.dataloader):
-            encodings = self.ifmodel(batch['seq'], batch['coord_conf'], batch['coord_pad'])
-            for i in range(len(batch['seq'].shape[0])):
-                self.data.append({
-                    'seq': batch['seq'][i][int(self.eos):batch['lens'][i]+int(self.eos)],
-                    'bind': batch['bind'][i][int(self.eos):batch['bind_lens'][i]+int(self.eos)],
-                    'coords': batch['coords'][i][batch['coord_pad'][i] == 0],
-                    'seq_enc': embeddings['encoder_out'][0].transpose(0, 1)[i, :batch['lens'][i], :],
-                    'cluster': batch['cluster'][i]
-                })
-            #augment self.data from form list[dict[..., cluster]] to list[list`dict[..., cluster]]], where the inner list is a list of dicts with the same cluster
-            if cluster:
-                self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
+        #check if file exists at path, if so load it, if not create it
+        if os.path.isfile(path):
+            with open(path, 'rb') as f:
+                self.data = pickle.load(f)
+            return
+        else:
+            self.dataloader = AsynchronousLoader(DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=dataset.collater), device=self.device)
+            self.data = []
+            self.eos = eos
+            self.ifmodel, self.ifalphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
+            for step, batch in enumerate(self.dataloader):
+                encodings = self.ifmodel(batch['seq'], batch['coord_conf'], batch['coord_pad'])
+                for i in range(len(batch['seq'].shape[0])):
+                    self.data.append({
+                        'seq': batch['seq'][i][int(self.eos):batch['lens'][i]+int(self.eos)],
+                        'bind': batch['bind'][i][int(self.eos):batch['bind_lens'][i]+int(self.eos)],
+                        'coords': batch['coords'][i][batch['coord_pad'][i] == 0],
+                        'seq_enc': embeddings['encoder_out'][0].transpose(0, 1)[i, :batch['lens'][i], :], 
+                        'cluster': batch['cluster'][i]
+                    })
+                #augment self.data from form list[dict[..., cluster]] to list[list`dict[..., cluster]]], where the inner list is a list of dicts with the same cluster
+                
+            #save self.data to path and create a function to load it back to self.data
+            with open(path, 'wb') as f:
+                pickle.dump(self.data, f)
+            self.path = path
+        if cluster:
+            self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
     def __len__(self):
         if cluster:
             return len(self.clustered_data)
@@ -296,6 +307,6 @@ class encoder_dataset(Dataset)
             'lens': [len(l) for l in select_by_key(batch, 'seq')],
             'bind_lens': [len(l) for l in select_by_key(batch, 'bind')], 
             'cluster': select_by_key(batch, 'cluster'),
-            'seq_enc': self.collate_tensors(select_by_key(batch, 'seq_enc'))
+            'seq_enc': self.collate_tensors(select_by_key(batch, 'seq_enc')) #shape (B, l, emb)
         }
         return post_proccessed
