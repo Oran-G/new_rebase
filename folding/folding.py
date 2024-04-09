@@ -372,7 +372,8 @@ def main(cfg: DictConfig) -> None:
         pass
     print(int(max(1, cfg.model.batch_size/model.batch_size)))
     trainer = pl.Trainer(
-        gpus=-1, 
+        devices=-1, 
+        accelerator="gpu",
         logger=wandb_logger,
         # limit_train_batches=2,
         # limit_train_epochs=3
@@ -386,18 +387,14 @@ def main(cfg: DictConfig) -> None:
         # check_val_every_n_epoch=1000,
         # max_epochs=cfg.model.max_epochs,
         default_root_dir=cfg.io.checkpoints,
-        #accumulate_grad_batches=8),
         accumulate_grad_batches=4,
         precision=cfg.model.precision,
         strategy='ddp',
-        #strategy='cpu',
         log_every_n_steps=5,
         progress_bar_refresh_rate=10,
         max_epochs=-1,
-        #limit_train_batches=.1,
         auto_scale_batch_size="power",
         gradient_clip_val=0.3,
-
         )
     print('ready to train!') 
     trainer.fit(model)

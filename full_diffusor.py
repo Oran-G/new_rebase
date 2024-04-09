@@ -410,7 +410,8 @@ def main(cfg: DictConfig) -> None:
 
     print(int(max(1, cfg.model.batch_size/model.batch_size)))
     trainer = pl.Trainer(
-        gpus=-1,
+        devices=-1, 
+        accelerator="gpu",
         logger=wandb_logger,
         # limit_train_batches=2,
         # limit_train_epochs=3
