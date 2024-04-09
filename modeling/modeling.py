@@ -274,12 +274,8 @@ def main(cfg: DictConfig) -> None:
         devices=-1, 
         accelerator="gpu", 
         logger=wandb_logger,
-        # limit_train_batches=2,
-        # limit_train_epochs=3
-        # auto_scale_batch_size=True,
         callbacks=[checkpoint_callback, lr_monitor, acc_callback],
-        # check_val_every_n_epoch=1000,
-        # max_epochs=cfg.model.max_epochs,
+
         default_root_dir=cfg.io.checkpoints,
         accumulate_grad_batches=int(max(1, cfg.model.batch_size/model.batch_size/int(cfg.model.gpu))),
         precision=cfg.model.precision,

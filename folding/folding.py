@@ -375,25 +375,19 @@ def main(cfg: DictConfig) -> None:
         devices=-1, 
         accelerator="gpu",
         logger=wandb_logger,
-        # limit_train_batches=2,
-        # limit_train_epochs=3
-        # auto_scale_batch_size=True,
         callbacks=[
             checkpoint_callback, 
             lr_monitor, 
             acc_callback, 
             BSFinder,
             ],
-        # check_val_every_n_epoch=1000,
-        # max_epochs=cfg.model.max_epochs,
+
         default_root_dir=cfg.io.checkpoints,
         accumulate_grad_batches=4,
         precision=cfg.model.precision,
         strategy='ddp',
         log_every_n_steps=5,
-        progress_bar_refresh_rate=10,
-        max_epochs=-1,
-        auto_scale_batch_size="power",
+        max_epochs=-1,s
         gradient_clip_val=0.3,
         )
     print('ready to train!') 
