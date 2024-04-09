@@ -10,10 +10,10 @@ from omegaconf import DictConfig, OmegaConf
 import hydra
 import torchmetrics
 from typing import List, Dict
-from pytorch_lightning.loggers import WandbLogger
+from lightning.pytorch.loggers import WandbLogger
 from pandas import DataFrame as df
 import pandas as pd
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
+from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 import pandas as pd
 import esm.inverse_folding
 import esm
