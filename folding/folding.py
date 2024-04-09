@@ -387,7 +387,7 @@ def main(cfg: DictConfig) -> None:
         precision=cfg.model.precision,
         strategy='ddp',
         log_every_n_steps=5,
-        max_epochs=-1,s
+        max_epochs=-1,
         gradient_clip_val=0.3,
         )
     print('ready to train!') 
