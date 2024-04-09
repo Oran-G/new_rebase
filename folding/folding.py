@@ -20,7 +20,6 @@ import esm
 import torch_geometric
 from GPUtil import showUtilization as gpu_usage
 import time
-from pl_bolts.datamodules.async_dataloader import AsynchronousLoader
 import os
 import json
 import wandb
@@ -210,7 +209,7 @@ class RebaseT5(pl.LightningModule):
         
 
         encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=2, device=self.device, path=self.cfg.io.val_embedded), 
-        dataloader = AsynchronousLoader(DataLoader(encoder_dataset, batch_size=2, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater), device=self.device)
+        dataloader = DataLoader(encoder_dataset, batch_size=2, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         return dataloader 
     def val_dataloader(self):
         if str(self.cfg.model.seq_identity)== '0.9':
@@ -233,7 +232,7 @@ class RebaseT5(pl.LightningModule):
             apply_bos=False,
         )
         encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=self.batch_size, device=self.device, path=self.cfg.io.val_embedded), 
-        dataloader = AsynchronousLoader(DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater), device=self.device)
+        dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         return dataloader 
 
     def configure_optimizers(self):

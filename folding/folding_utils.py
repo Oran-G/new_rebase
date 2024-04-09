@@ -14,12 +14,11 @@ from pandas import DataFrame as df
 import pandas as pd
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import pandas as pd
-import esm.inverse_folding
 import esm
+import esm.inverse_folding
 import torch_geometric
 from GPUtil import showUtilization as gpu_usage
 import time
-from pl_bolts.datamodules.async_dataloader import AsynchronousLoader
 import os
 import json
 import wandb
@@ -260,13 +259,15 @@ class EncoderDataset(Dataset):
                 self.data = pickle.load(f)
             return
         else:
-            self.dataloader = AsynchronousLoader(DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=dataset.collater), device=self.device)
+            self.dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=dataset.collater)
             self.data = []
             self.eos = eos
             print(f'creating embeddings saving to {path}')
             self.ifmodel, self.ifalphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
             for step, batch in enumerate(self.dataloader):
-                encodings = self.ifmodel(batch['seq'], batch['coord_conf'], batch['coord_pad'])
+                with torch.no_grad():
+                    embeddings = self.ifmodel(batch['seq'], batch['coord_conf'], batch['coord_pad'])
+                
                 for i in range(len(batch['seq'].shape[0])):
                     self.data.append({
                         'seq': batch['seq'][i][int(self.eos):batch['lens'][i]+int(self.eos)],
