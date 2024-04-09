@@ -1,4 +1,0 @@
-esm: True
-esmgrad: False
-path: esm1_t34_670M_UR100
-layers: 34

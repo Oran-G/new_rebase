@@ -26,26 +26,13 @@ import wandb
 import csv
 import random
 import folding_utils
-'''
-TODOs (10/17/21):
-* figure out reasonable train/valid set
-* run a few baselines in this setup to get a handle on what performnace is like
-* ESM-1b pretrained representations
-* Alphafold
-'''
-
-
-
 
 
 
 
 class RebaseT5(pl.LightningModule):
     def __init__(self, cfg):
-        '''
-        Main class
-        pl.LightningModule git - https://github.com/Lightning-AI/lightning/blob/master/src/pytorch_lightning/core/module.py
-        '''
+
 
         super(RebaseT5, self).__init__()
     
@@ -55,6 +42,7 @@ class RebaseT5(pl.LightningModule):
         except:
             pass
         self.save_hyperparameters(cfg)
+        print("Argument hparams: ", self.hparams)
         self.batch_size = self.hparams.model.batch_size
         print("Argument hparams: ", self.hparams)
         print('batch size', self.hparams.model.batch_size)

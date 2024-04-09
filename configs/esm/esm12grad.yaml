@@ -1,4 +1,0 @@
-esm: True
-esmgrad: True
-path: esm1_t12_85M_UR50S
-layers: 12
