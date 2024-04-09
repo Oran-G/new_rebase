@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-import pytorch_lightning as pl
+#import pytorch_lightning as pl
+import lightning.pytorch as pl
 from transformers import T5Config, T5ForConditionalGeneration, get_linear_schedule_with_warmup,  get_polynomial_decay_schedule_with_warmup, BertGenerationConfig, BertGenerationDecoder
 from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrapperDataset
 from torch.utils.data import DataLoader, Dataset
@@ -370,7 +371,7 @@ def main(cfg: DictConfig) -> None:
     acc_callback = ModelCheckpoint(monitor="val_acc_epoch", filename=f'acc-{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True, save_top_k=5) 
     swa_callback = pl.callbacks.StochasticWeightAveraging(swa_lrs=1e-2)
     lr_monitor = LearningRateMonitor(logging_interval='step')
-    pl.pytorch.callbacks.BatchSizeFinder()
+    BSFinder = pl.callbacks.BatchSizeFinder()
     print(model.batch_size)
     print('tune: ')
     model.batch_size = 2
@@ -393,7 +394,7 @@ def main(cfg: DictConfig) -> None:
             checkpoint_callback, 
             lr_monitor, 
             acc_callback, 
-            #swa
+            BSFinder,
             ],
         # check_val_every_n_epoch=1000,
         # max_epochs=cfg.model.max_epochs,
