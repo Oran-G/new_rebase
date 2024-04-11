@@ -69,7 +69,6 @@ class RebaseT5(pl.LightningModule):
 
         self.model = T5ForConditionalGeneration(t5_config)
         self.accuracy = torchmetrics.Accuracy(ignore_index=self.dictionary.pad())
-        # self.actual_batch_size = self.hparams.model.gpu*self.hparams.model.per_gpu if self.hparams.model.gpu != 0 else 1
         print('initialized')
 
     def perplexity(self, output, target):
@@ -209,26 +208,15 @@ def main(cfg: DictConfig) -> None:
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", filename=f'{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True) 
     acc_callback = ModelCheckpoint(monitor="val_acc", filename=f'acc-{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True) 
     lr_monitor = LearningRateMonitor(logging_interval='step')
-    print(model.batch_size)
-    print('tune: ')
-    # trainer.tune(model)
-    model.batch_size = 8
-    if int(cfg.esm.layers) == 12:
-        model.batch_size = 2
-    if int(cfg.esm.layers) == 34:
-        model.batch_size = 1
-    print(model.batch_size)
-    # quit()
-    print(int(max(1, cfg.model.batch_size/model.batch_size)))
-    # trainer.__init__(
+    BSFinder = pl.callbacks.BatchSizeFinder()
     trainer = pl.Trainer(
         devices=-1, 
         accelerator="gpu", 
         logger=wandb_logger,
-        callbacks=[checkpoint_callback, lr_monitor, acc_callback],
+        callbacks=[checkpoint_callback, lr_monitor, acc_callback, BSFinder],
 
         default_root_dir=cfg.io.checkpoints,
-        accumulate_grad_batches=int(max(1, cfg.model.batch_size/model.batch_size/int(cfg.model.gpu))),
+        accumulate_grad_batches=int(cfg.model.grad_batches),
         precision=cfg.model.precision,
         accelerator='ddp',
         log_every_n_steps=5,

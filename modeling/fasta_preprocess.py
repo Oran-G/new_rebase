@@ -26,7 +26,7 @@ def create_embeddings(input_file: str, output_types: List[List[str]]):
 def main(cfg: DictConfig) -> None:
     
 
-    
+    os.system('export TORCH_HOME=/vast/og2114/torch_home')
     parser = argparse.ArgumentParser(
                     prog='ESM_embedder',
                     description='Embeds protein sequences using ESM')
@@ -46,6 +46,7 @@ def main(cfg: DictConfig) -> None:
     input_file = args.input_path
     output_file = args.output_path
     modify_fasta_labels(input_file, output_file)
+
     outputs = [[model_name, f'{cfg.io.embeddings_store_dir}/{model_name}'] for model_name in args.model_name]
     create_embeddings(output_file, outputs)
     
