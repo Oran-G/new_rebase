@@ -265,6 +265,7 @@ class EncoderDataset(Dataset):
             print(f'creating embeddings saving to {path}')
             self.ifmodel, self.ifalphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
             for step, batch in enumerate(self.dataloader):
+                import pdb; pdb.set_trace()
                 with torch.no_grad():
                     embeddings = self.ifmodel(batch['seq'], batch['coord_conf'], batch['coord_pad'])
                 
