@@ -24,15 +24,16 @@ class DataAnalyzer:
                 self.labeled = self.data['labeled']
                 self.unlabeled = self.data['unlabeled']
                 self.combined = self.data['combined']
-        self.labeled = pd.read_csv(full)
-        self.unlabeled = pd.read_csv(unlabeled)
-        self.combined = self.labeled.copy()
-        self.combined['labeled'] = self.labeled['bind'].notnull()
-        # for every unlabeled protein, replace the bind site of that row with the seq_greedy from the corresponding row in the unlabeled dataset (using the id column)
-        for idx, row in self.unlabeled.iterrows():
-            self.combined.loc[self.combined['id'] == row['id'], 'bind'] = row['seq_greedy']
-        with open(combined_path, 'wb') as f:
-            pickle.dump({'labeled': self.labeled, 'unlabeled': self.unlabeled, 'combined': self.combined}, f)
+        else:
+            self.labeled = pd.read_csv(full)
+            self.unlabeled = pd.read_csv(unlabeled)
+            self.combined = self.labeled.copy()
+            self.combined['labeled'] = self.labeled['bind'].notnull()
+            # for every unlabeled protein, replace the bind site of that row with the seq_greedy from the corresponding row in the unlabeled dataset (using the id column)
+            for idx, row in self.unlabeled.iterrows():
+                self.combined.loc[self.combined['id'] == row['id'], 'bind'] = row['seq_greedy']
+            with open(combined_path, 'wb') as f:
+                pickle.dump({'labeled': self.labeled, 'unlabeled': self.unlabeled, 'combined': self.combined}, f)
     def homology_search(self, id):
         #return all proteins in self.data with 'test' in the split, and with the same cluster as the protein with the given id. also add a row to the returned dataframe that mentions if the protein has the same bind site as the protein with the given id
         cluster = self.combined[self.combined['id'] == id]['cluster'].values[0]
@@ -62,5 +63,18 @@ class DataAnalyzer:
                 wierd_groups[bind] = proteins
         return wierd_groups
 
-
-       
+    def calculate_percentage(self):
+        # Get the clusters of unlabeled proteins
+        labeled_clusters = set(self.labeled['cluster'])
+        
+        # Count the number of unlabeled proteins with at least one labeled protein in their cluster
+        count = 0
+        for row in self.unlabeled.iterrows():
+            if row['cluster'] in labeled_clusters:
+                count += 1
+        
+        # Calculate the percentage
+        percentage = (count / len(self.unlabeled)) * 100
+        
+        return percentage
+    

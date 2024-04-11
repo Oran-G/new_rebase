@@ -21,7 +21,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import torch
 
 import pandas as pd
-from typing import List
+
 
 '''
 TODOs (10/17/21):
