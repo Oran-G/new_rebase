@@ -264,6 +264,7 @@ class EncoderDataset(Dataset):
             self.eos = eos
             print(f'creating embeddings saving to {path}')
             self.ifmodel, self.ifalphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
+            self.ifmodel = self.ifmodel.to(self.device)
             for step, batch in enumerate(self.dataloader):
                 import pdb; pdb.set_trace()
                 with torch.no_grad():
@@ -285,6 +286,16 @@ class EncoderDataset(Dataset):
             self.path = path
         if cluster:
             self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
+    def get_encoder_output(self, model, alphabet, coords):
+        device = next(model.parameters()).device
+        batch_converter = esm.data.CoordBatchConverter(alphabet)
+        batch = [(coords, None, None)]
+        coords, confidence, strs, tokens, padding_mask = batch_converter(
+            batch, device=device)
+        encoder_out = model.encoder.forward(coords, padding_mask, confidence,
+                return_all_hiddens=False)
+        # remove beginning and end (bos and eos tokens)
+        return encoder_out['encoder_out'][0][1:-1, 0]
     def __len__(self):
         if cluster:
             return len(self.clustered_data)
