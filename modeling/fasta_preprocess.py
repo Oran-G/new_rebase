@@ -46,7 +46,7 @@ def main(cfg: DictConfig) -> None:
     input_file = args.input_path
     output_file = args.output_path
     modify_fasta_labels(input_file, output_file)
-    outputs = [[args.model_name, f'{cfg.io.embeddings_store_dir}/{model_name}'] for model_name in args.model_name]
+    outputs = [[model_name, f'{cfg.io.embeddings_store_dir}/{model_name}'] for model_name in args.model_name]
     create_embeddings(output_file, outputs)
     
 if __name__ == '__main__':
