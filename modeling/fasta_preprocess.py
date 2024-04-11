@@ -16,8 +16,6 @@ def modify_fasta_labels(input_file, output_file):
 
 def create_embeddings(input_file: str, output_types: List[List[str]]):
     for model_name, path in output_types:
-        print(model_name, path)
-        print(f'python3 /vast/og2114/new_rebase/modeling/extract.py {model_name} {input_file} {path} --include per_tok')
         os.makedirs(os.path.dirname(path), exist_ok=True)  # Create directory if it doesn't exist
         os.system(f'python3 /vast/og2114/new_rebase/modeling/extract.py {model_name} {input_file} {path} --include per_tok')
     
@@ -46,7 +44,7 @@ def main(cfg: DictConfig) -> None:
     input_file = args.input_path
     output_file = args.output_path
     modify_fasta_labels(input_file, output_file)
-    outputs = [[args.model_name, f'{cfg.io.embeddings_store_dir}/{args.model_name}'] for model_name in args.model_name]
+    outputs = [[args.model_name, f'{cfg.io.embeddings_store_dir}/{model_name}'] for model_name in args.model_name]
     create_embeddings(output_file, outputs)
     
 if __name__ == '__main__':
