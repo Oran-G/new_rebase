@@ -2,6 +2,7 @@ import os
 import argparse
 from typing import List
 import hydra
+from omegaconf import DictConfig, OmegaConf
 def modify_fasta_labels(input_file, output_file):
     with open(input_file, 'r') as f_in, open(output_file, 'w') as f_out:
         f_out.write('')  # Completely overwrite output_file before adding in the data
