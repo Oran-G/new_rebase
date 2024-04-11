@@ -24,6 +24,7 @@ import json
 import wandb
 import csv
 import random
+from typing import List
 
 class CSVDataset(Dataset):
     def __init__(self, csv_path, split, split_seed=42, supervised=True, plddt=85, clust=False):

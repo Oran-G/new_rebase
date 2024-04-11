@@ -21,7 +21,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import torch
 
 import pandas as pd
-
+from typing import List
 
 '''
 TODOs (10/17/21):
@@ -99,14 +99,8 @@ class RebaseT5(pl.LightningModule):
         # make sure you don't take gradients through ESM-1b; do torch.no_grad()
         # alternatively, you can do this in __init__: [for parameter in self.esm1b_model.paramters(): parmater.requires_grad=False]
         # pass that ESM-1b hidden states into self.model(..., encoder_outputs=...)
-        if self.model_type = 'm150':
-            output = self.model(encoder_outputs=[batch['m']], attention_mask=mask, labels=batch['bind'])
-        elif self.model_type = 'm650':
-            output = self.model(encoder_outputs=[batch['']], attention_mask=mask, labels=batch['bind'])
-        elif self.model_type = 'b3':
-            output = self.model(encoder_outputs=[batch['']], attention_mask=mask, labels=batch['bind'])
-        elif self.model_type = 'fold':
-            output = self.model(encoder_outputs=[batch['']], attention_mask=mask, labels=batch['bind'])
+        if self.esm.esm:
+            output = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'])
         else:
             output = self.model(input_ids=batch['seq'], attention_mask=mask, labels=batch['bind'])
 
@@ -129,14 +123,11 @@ class RebaseT5(pl.LightningModule):
         # import pdb; pdb.set_trace()
         # 1 for tokens that are not masked; 0 for tokens that are masked
         mask = (batch['seq'] != self.dictionary.pad()).int()
-        if self.hparams.esm.esm != False:
-
-            results = self.esm(batch['seq'], repr_layers=[int(self.hparams.esm.layers)], return_contacts=True)
-            token_representations = results["representations"][int(self.hparams.esm.layers)]
-            output = self.model(encoder_outputs=[token_representations], attention_mask=mask, labels=batch['bind'])
-        else:
-            output = self.model(input_ids=batch['seq'], attention_mask=mask, labels=batch['bind'])
-        
+        with torch.no_grad():
+            if self.esm.esm:
+                output = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'])
+            else:
+                output = self.model(input_ids=batch['seq'], attention_mask=mask, labels=batch['bind'])
         self.log('val_loss', float(output.loss), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         self.log('val_acc',float(accuracy(output['logits'].argmax(-1), batch['bind'], (batch['bind'] != self.dictionary.pad()).int())), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         return {
@@ -145,10 +136,11 @@ class RebaseT5(pl.LightningModule):
         }
     
     def train_dataloader(self):
-        dataset = EncodedFastaDatasetWrapper(
-            CSVDataset(self.cfg.io.final, 'train'),
-
+        dataset =  modeling_utils.EmbeddedFastaDatasetWrapper(
+            modeling_utils.CSVDataset(self.cfg.io.final, 'train'),
             self.dictionary,
+            self.cfg.esm.path,
+            self.cfg.io.embeddings_store_dir,
             apply_eos=True,
             apply_bos=False,
         )
@@ -157,9 +149,11 @@ class RebaseT5(pl.LightningModule):
 
         return dataloader
     def val_dataloader(self):
-        dataset = EncodedFastaDatasetWrapper(
-            CSVDataset(self.cfg.io.final, 'val'),
+        dataset = modeling_utils.EmbeddedFastaDatasetWrapper(
+            modeling_utils.CSVDataset(self.cfg.io.final, 'val'),
             self.dictionary,
+            self.cfg.esm.path,
+            self.cfg.io.embeddings_store_dir,
             apply_eos=True,
             apply_bos=False,
         )
@@ -189,50 +183,6 @@ class RebaseT5(pl.LightningModule):
             }
         else:
             return opt
-
-    def val_test(self):
-        alls = []
-        for batch in iter(self.val_dataloader()):
-            label_mask = (batch['bind'] == self.dictionary.pad())
-            batch['bind'][label_mask] = -100
-            
-
-            # 1 for tokens that are not masked; 0 for tokens that are masked
-            mask = (batch['seq'] != self.dictionary.pad()).int()
-            if self.hparams.esm.esm != False:
-
-                results = self.esm(batch['seq'], repr_layers=[int(self.hparams.esm.layers)], return_contacts=True)
-                token_representations = results["representations"][int(self.hparams.esm.layers)]
-                output = self.model(encoder_outputs=[token_representations], attention_mask=mask, labels=batch['bind'])
-            else:
-                output = self.model(input_ids=batch['seq'], attention_mask=mask, labels=batch['bind'])
-            # import pdb; pdb.set_trace()
-            import pdb
-            for i in range(batch['bind'].shape[0]):
-                # import pdb; pdbss.set_trace()
-                if (batch['seq'][i] == 1).nonzero(as_tuple=True)[0].shape[0] != 0:
-
-                    seq = batch['seq'][i][0: (batch['seq'][i] == 1).nonzero(as_tuple=True)[0][0]]
-                else:
-                    seq = batch['seq'][i]
-                if (batch['bind'][i] == -100).nonzero(as_tuple=True)[0].shape[0] != 0:
-                    bind = batch['bind'][i][0: (batch['bind'][i] == -100).nonzero(as_tuple=True)[0][0]]
-                else:
-                    bind = batch['bind'][i]
-
-                if (output['logits'].argmax(-1)[i] == -100).nonzero(as_tuple=True)[0].shape[0] != 0:
-                    pred = output['logits'].argmax(-1)[i][0: (output['logits'].argmax(-1)[i] == -100).nonzero(as_tuple=True)[0][0]]
-                else:
-                    pred = output['logits'].argmax(-1)[i]
-
-
-                # print(seq, bind, pred)ß
-                alls.append({'seq': self.dictionary.string(seq), 
-                    'bind': self.dictionary.string(bind), 
-                    'predicted': self.dictionary.string(pred)})
-            
-        return alls
-            
             
             
 

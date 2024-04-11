@@ -26,7 +26,7 @@ import wandb
 import csv
 import random
 import folding_utils
-
+from typing import Lists
 
 
 
@@ -112,15 +112,6 @@ class RebaseT5(pl.LightningModule):
         start_time  = time.time()
 
         torch.cuda.empty_cache()
-        '''
-        take out attention mask - I do not think it is needed right now
-        labels changed so that padding idx is -100 - needed as -100 is the default ignore index for crossEntropyLoss,and is used by T5 in this case
-        pred: [
-            loss,
-            logits,
-            ...
-        ]
-        '''
         
         label = batch['bind']
         label[label==self.ifalphabet.padding_idx] = -100
@@ -134,9 +125,7 @@ class RebaseT5(pl.LightningModule):
         #import pdb; pdb.set_trace()
         loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
         
-        confs = self.conf(nn.functional.softmax(pred[1], dim=-1),target=batch['bind'])
-        self.log('top_conf', float(confs[0]), on_step=True, on_epoch=True, prog_bar=False, logger=True)
-        self.log('low_conf', float(confs[1]), on_step=True, on_epoch=True, prog_bar=False, logger=True)
+
         self.log('train_loss', float(loss.item()), on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log('train_acc',float(self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2), batch['bind'])), on_step=True, on_epoch=True, prog_bar=False, logger=True) #accuracy using torchmetrics accuracy
         self.log('length', int(pred[1].shape[-2]),  on_step=True,  logger=True) # length of prediction
@@ -162,10 +151,6 @@ class RebaseT5(pl.LightningModule):
             print(token_representations['encoder_out'], batch, batch_idx)
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
-        confs = self.conf(nn.functional.softmax(pred[1], dim=-1),target=batch['bind'])
-        self.log('val_top_conf', float(confs[0]), on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log('val_low_conf', float(confs[1]), on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log('val_mean_conf', float(confs[2]), on_step=True, on_epoch=True, prog_bar=True, logger=True)
         
         self.log('val_loss', float(loss.item()), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         self.log('val_acc', float(self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2), batch['bind'])), on_step=True, on_epoch=True, prog_bar=False, logger=True)
@@ -381,7 +366,6 @@ def main(cfg: DictConfig) -> None:
             acc_callback, 
             BSFinder,
             ],
-
         default_root_dir=cfg.io.checkpoints,
         accumulate_grad_batches=4,
         precision=cfg.model.precision,

@@ -24,7 +24,7 @@ import json
 import wandb
 import csv
 import random
-
+from typing import List
 from rfdiffusion.kinematics import xyz_to_t2d
 from rfdiffusion.util import get_torsions, make_frame, torsion_indices, torsion_can_flip, reference_angles
 from rfdiffusion.inference.utils import Denoise, process_target
