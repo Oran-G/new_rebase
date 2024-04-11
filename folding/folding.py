@@ -269,22 +269,7 @@ class RebaseT5(pl.LightningModule):
         return max(h1), min(h2), (sum(h3)/len(h3))
 
 
-    def validation_epoch_end(self, validation_step_outputs):
-        '''
-            end of epoch - saves the validation data outlined in validation step to csv
-        '''
-        if False:
-            df1 = pd.DataFrame(self.val_data)
-            dictionaries=self.val_data
-            print(len(dictionaries))
-            import pdb; pdb.set_trace()
-            keys = dictionaries[0].keys()
-            a_file = open(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs/{self.trainer.current_epoch}-output.csv", "w")
-            dict_writer = csv.DictWriter(a_file, keys)
-            dict_writer.writeheader()
-            dict_writer.writerows(dictionaries)
-            a_file.close()
-            self.val_data = []
+
     def test_step(self, batch, batch_idx):
 
         
@@ -343,18 +328,10 @@ def main(cfg: DictConfig) -> None:
     swa_callback = pl.callbacks.StochasticWeightAveraging(swa_lrs=1e-2)
     lr_monitor = LearningRateMonitor(logging_interval='step')
     BSFinder = pl.callbacks.BatchSizeFinder()
-    print(model.batch_size)
+
     print('tune: ')
-    model.batch_size = 2
-    try:
-        os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")
-    except: 
-        pass
-    try:
-        os.mkdir(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
-    except: 
-        pass
-    print(int(max(1, cfg.model.batch_size/model.batch_size)))
+
+
     trainer = pl.Trainer(
         devices=-1, 
         accelerator="gpu",

@@ -2,7 +2,7 @@
 # d_model: 768
 d_ff: 64
 d_kv: 64
-d_model: 2560
+d_model: 1280
 batch_size: 16
 lr: 1e-2
 layers: 4
