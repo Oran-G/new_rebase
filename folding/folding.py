@@ -34,14 +34,13 @@ class RebaseT5(pl.LightningModule):
 
 
         super(RebaseT5, self).__init__()
+        self.save_hyperparameters(cfg)
     
-        self.cfg = cfg
         try:
-            self.cfg['slurm'] = str(os.environ.get('SLURM_JOB_ID'))
+            self.hparams['slurm'] = str(os.environ.get('SLURM_JOB_ID'))
         except:
             pass
-        self.save_hyperparameters(cfg)
-        print("Argument hparams: ", self.hparams)
+        
         self.batch_size = self.hparams.model.batch_size
         print("Argument hparams: ", self.hparams)
         print('batch size', self.hparams.model.batch_size)
@@ -160,19 +159,19 @@ class RebaseT5(pl.LightningModule):
         }
     
     def train_dataloader(self):
-        if str(self.cfg.model.seq_identity) == '0.9':
+        if str(self.hparams.model.seq_identity) == '0.9':
             print(.7)
-            cs = f'{self.cfg.io.final}-9'
-        elif str(self.cfg.model.seq_identity) == '0.7':
+            cs = f'{self.hparams.io.final}-9'
+        elif str(self.hparams.model.seq_identity) == '0.7':
             print(.9)
-            cs = f'{self.cfg.io.final}-7'
+            cs = f'{self.hparams.io.final}-7'
         else:
-            cs = self.cfg.io.final
-        if self.cfg.model.dna_clust == True:
-            cs = self.cfg.io.dnafinal
+            cs = self.hparams.io.final
+        if self.hparams.model.dna_clust == True:
+            cs = self.hparams.io.dnafinal
         print(cs)
         dataset = folding_utils.EncodedFastaDatasetWrapper(
-            folding_utils.CSVDataset(cs, 'train', clust=self.cfg.model.sample_by_cluster),
+            folding_utils.CSVDataset(cs, 'train', clust=self.hparams.model.sample_by_cluster),
 
             self.ifalphabet,
             apply_eos=True,
@@ -180,30 +179,30 @@ class RebaseT5(pl.LightningModule):
         )
         
 
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=2, device=self.device, path=self.cfg.io.val_embedded), 
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=2, device=self.device, path=self.hparams.io.val_embedded), 
         dataloader = DataLoader(encoder_dataset, batch_size=2, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         return dataloader 
     def val_dataloader(self):
-        if str(self.cfg.model.seq_identity)== '0.9':
+        if str(self.hparams.model.seq_identity)== '0.9':
             print(".9 seq")
-            cs = f'{self.cfg.io.final}-9'
-        elif str(self.cfg.model.seq_identity) == '0.7':
+            cs = f'{self.hparams.io.final}-9'
+        elif str(self.hparams.model.seq_identity) == '0.7':
             print('.7 seq')
-            cs = f'{self.cfg.io.final}-7'
+            cs = f'{self.hparams.io.final}-7'
         else:
-            cs = self.cfg.io.final
+            cs = self.hparams.io.final
         
-        if self.cfg.model.dna_clust == True:
-            cs = self.cfg.io.dnafinal
-        print(self.cfg.model.seq_identity)
+        if self.hparams.model.dna_clust == True:
+            cs = self.hparams.io.dnafinal
+        print(self.hparams.model.seq_identity)
         print(cs)
         dataset = folding_utils.EncodedFastaDatasetWrapper(
-            folding_utils.CSVDataset(cs, 'val', clust=self.cfg.model.sample_by_cluster),
+            folding_utils.CSVDataset(cs, 'val', clust=self.hparams.model.sample_by_cluster),
             self.ifalphabet,
             apply_eos=True,
             apply_bos=False,
         )
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=self.batch_size, device=self.device, path=self.cfg.io.val_embedded), 
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=self.batch_size, device=self.device, path=self.hparams.io.val_embedded), 
         dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         return dataloader 
 
@@ -226,7 +225,7 @@ class RebaseT5(pl.LightningModule):
                     optimizer=opt,
                     num_training_steps=300000,
                     num_warmup_steps=4000, #was 4000
-                    power=cfg.model.lrpower,
+                    power=self.hparams.model.lrpower,
                 )
             }
         else:
@@ -330,7 +329,23 @@ def main(cfg: DictConfig) -> None:
     BSFinder = pl.callbacks.BatchSizeFinder()
 
     print('tune: ')
-    
+    '''
+    batch_trainer = pl.Trainer(
+        devices=1, 
+        accelerator="gpu",
+        logger=wandb_logger,
+        callbacks=[
+            BSFinder,
+            ],
+        precision=cfg.model.precision,
+        
+        fast_dev_run=True,
+        gradient_clip_val=0.3,
+        )
+    batch_trainer.fit(model)
+    print(model.batch_size)
+
+    '''
 
     trainer = pl.Trainer(
         devices=-1, 
