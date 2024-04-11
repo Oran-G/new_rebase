@@ -61,7 +61,6 @@ def create_parser():
 
 
 def run(args):
-    import pdb; pdb.set_trace()
     model, alphabet = pretrained.load_model_and_alphabet(args.model_location)
     model.eval()
     if isinstance(model, MSATransformer):
