@@ -1,6 +1,7 @@
 import os
 import argparse
 from typing import List
+import hydra
 def modify_fasta_labels(input_file, output_file):
     with open(input_file, 'r') as f_in, open(output_file, 'w') as f_out:
         f_out.write('')  # Completely overwrite output_file before adding in the data
@@ -21,8 +22,7 @@ def create_embeddings(input_file: str, output_types: List[List[str]]):
 @hydra.main(config_path='../configs', config_name='defaults')
 def main(cfg: DictConfig) -> None:
     
-    output_file = cfg.io.fasta_for_esm_embedder
-    
+
     
     parser = argparse.ArgumentParser(
                     prog='ESM_embedder',
@@ -37,10 +37,11 @@ def main(cfg: DictConfig) -> None:
     )
     parser.add_argument('--output_path', type=str, 
         help='The name of the fasta file to be created for embedding', 
-        default=f'{cfg.io.embeddings_store_dir}'
+        default=f'{cfg.io.fasta_for_esm_embedder}'
     )
     args = parser.parse_args()
     input_file = args.input_path
+    output_file = args.output_path
     modify_fasta_labels(input_file, output_file)
     outputs = [[args.model_name, f'{cfg.io.embeddings_store_dir}/{args.model_name}'] for model_name in args.model_name]
     create_embeddings(output_file, outputs)
