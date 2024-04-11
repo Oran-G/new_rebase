@@ -330,7 +330,7 @@ def main(cfg: DictConfig) -> None:
     BSFinder = pl.callbacks.BatchSizeFinder()
 
     print('tune: ')
-
+    
 
     trainer = pl.Trainer(
         devices=-1, 
@@ -340,7 +340,6 @@ def main(cfg: DictConfig) -> None:
             checkpoint_callback, 
             lr_monitor, 
             acc_callback, 
-            BSFinder,
             ],
         default_root_dir=cfg.io.checkpoints,
         accumulate_grad_batches=max(1, int(64/model.batch_size)),
