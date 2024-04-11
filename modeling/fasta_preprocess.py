@@ -32,7 +32,7 @@ def main(cfg: DictConfig) -> None:
                     description='Embeds protein sequences using ESM')
     parser.add_argument('--model_name', nargs='*', 
         help='The name of the model to use for embedding', 
-        default=['esm2_t48_15B_UR50D', 'esm2_t36_3B_UR50D', 'esm2_t33_650M_UR50D', 'esm2_t30_150M_UR50D']
+        default=['esm2_t36_3B_UR50D', 'esm2_t33_650M_UR50D', 'esm2_t30_150M_UR50D']
     )
     parser.add_argument('--input_path', type=str, 
         help='The name of the original fasta file', 

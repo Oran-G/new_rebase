@@ -61,6 +61,7 @@ class RebaseT5(pl.LightningModule):
             # TODO: grab these from the config
             d_model=self.hparams.model.d_model,
             d_ff=self.hparams.model.d_ff,
+            d_kv=self.hparams.model.d_kv,
             num_layers=self.hparams.model.layers,
             pad_token_id=self.dictionary.pad(),
             eos_token_id=self.dictionary.eos(),
