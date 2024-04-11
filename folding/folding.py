@@ -343,7 +343,7 @@ def main(cfg: DictConfig) -> None:
             BSFinder,
             ],
         default_root_dir=cfg.io.checkpoints,
-        accumulate_grad_batches=4,
+        accumulate_grad_batches=max(1, int(64/model.batch_size)),
         precision=cfg.model.precision,
         strategy='ddp',
         log_every_n_steps=5,

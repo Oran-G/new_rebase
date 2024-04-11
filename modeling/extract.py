@@ -61,6 +61,7 @@ def create_parser():
 
 
 def run(args):
+    print(args.model_location)
     model, alphabet = pretrained.load_model_and_alphabet(args.model_location)
     model.eval()
     if isinstance(model, MSATransformer):
