@@ -17,7 +17,7 @@ def modify_fasta_labels(input_file, output_file):
 def create_embeddings(input_file: str, output_types: List[List[str]]):
     for model_name, path in output_types:
         os.makedirs(os.path.dirname(path), exist_ok=True)  # Create directory if it doesn't exist
-        os.system(f'python3 extract.py {model_name} {input_file} {path} --include per_tok')
+        os.system(f'python3 /vast/og2114/new_rebase/modeling/extract.py {model_name} {input_file} {path} --include per_tok')
     
 # Usage example
 @hydra.main(config_path='../configs', config_name='defaults')
