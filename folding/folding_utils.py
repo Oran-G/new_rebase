@@ -47,10 +47,11 @@ class CSVDataset(Dataset):
         print("pre filter",len(self.df))
         def alpha(ids):
             return os.path.isfile(f'/vast/og2114/rebase/20220519/output/{ids}/ranked_0.pdb') and (max(json.load(open(f'/vast/og2114/rebase/20220519/output/{ids}/ranking_debug.json'))['plddts'].values()) >= plddt)
-        #self.df  = self.df[self.df['id'].apply(alpha) ==True ]
+
         self.df = self.df[self.df['id'] != 'Csp7507ORF4224P']
         print("post filter",len(self.df))
         spl = self.split(split)
+        #spl = spl[spl['id'].apply(alpha) ==True ]
         self.data = spl[['seq','bind', 'id', 'cluster']].to_dict('records')
         print(len(self.data))
         self.data = [x for x in self.data if x not in self.data[16*711:16*714]]
@@ -255,7 +256,7 @@ def enable_cpu_offloading(model):
     """
 
     def forward_hook(module, inputs, outputs):
-        if torch.cuda.memory_allocated() > some_memory_threshold:
+        if torch.cuda.memory_allocated() > torch.cuda.get_device_properties(torch.cuda.current_device()).total_memory * 0.9:
             if isinstance(outputs, torch.Tensor):
                 outputs = outputs.cpu()
             elif isinstance(outputs, tuple):
