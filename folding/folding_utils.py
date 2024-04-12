@@ -320,6 +320,7 @@ class EncoderDataset(Dataset):
             with open(path, 'wb') as f:
                 pickle.dump(self.data, f)
             self.path = path
+            print(len(self.data))
         if cluster:
             self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
 
