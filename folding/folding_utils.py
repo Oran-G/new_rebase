@@ -266,15 +266,15 @@ class EncoderDataset(Dataset):
             self.ifmodel, self.ifalphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
             self.ifmodel = self.ifmodel.to(self.device)
             for step, batch in enumerate(self.dataloader):
-                import pdb; pdb.set_trace()
-                with torch.no_grad():
-                    embeddings = self.ifmodel(batch['seq'], batch['coord_conf'], batch['coord_pad'])
-                
+                encoder_out = model.encoder.forward(batch['coords'], batch['coord_pad'], batch['coord_conf'],
+                return_all_hiddens=False)
+                # remove beginning and end (bos and eos tokens)
+                embeddings = encoder_out['encoder_out'][0][1:-1, 0]
                 for i in range(len(batch['seq'].shape[0])):
                     self.data.append({
                         'seq': batch['seq'][i][int(self.eos):batch['lens'][i]+int(self.eos)],
                         'bind': batch['bind'][i][int(self.eos):batch['bind_lens'][i]+int(self.eos)],
-                        'coords': batch['coords'][i][batch['coord_pad'][i] == 0],
+                        'coords': batch['coords'][i][:batch['lens'][i]],
                         'seq_enc': embeddings['encoder_out'][0].transpose(0, 1)[i, :batch['lens'][i], :], 
                         'cluster': batch['cluster'][i]
                     })
