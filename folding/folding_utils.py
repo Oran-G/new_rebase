@@ -265,9 +265,13 @@ class EncoderDataset(Dataset):
             print(f'creating embeddings saving to {path}')
             self.ifmodel, self.ifalphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
             self.ifmodel = self.ifmodel.to(self.device)
+            self.ifmodel = self.ifmodel.eval()
+            self.ifmodel = self.enable_cpu_offloading(self.ifmodel)
             for step, batch in enumerate(self.dataloader):
-                encoder_out = model.encoder.forward(batch['coords'], batch['coord_pad'], batch['coord_conf'],
-                return_all_hiddens=False)
+                #predict the encoder output using self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False). 
+                # if GPU runs out of memory, use sharding
+                
+                encoder_out = self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False)
                 # remove beginning and end (bos and eos tokens)
                 embeddings = encoder_out['encoder_out'][0][1:-1, 0]
                 for i in range(len(batch['seq'].shape[0])):
@@ -286,15 +290,23 @@ class EncoderDataset(Dataset):
             self.path = path
         if cluster:
             self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
-    def get_encoder_output(self, model, alphabet, coords):
-        device = next(model.parameters()).device
-        batch_converter = esm.data.CoordBatchConverter(alphabet)
-        batch = [(coords, None, None)]
-        coords, confidence, strs, tokens, padding_mask = batch_converter(
-            batch, device=device)
-        encoder_out = model.encoder.forward(coords, padding_mask, confidence,
-                return_all_hiddens=False)
-        # remove beginning and end (bos and eos tokens)
+    def enable_cpu_offloading(self, model):
+        from torch.distributed.fsdp import CPUOffload, FullyShardedDataParallel
+        from torch.distributed.fsdp.wrap import enable_wrap, wrap
+
+        torch.distributed.init_process_group(
+            backend="nccl", init_method="tcp://localhost:9999", world_size=1, rank=0
+        )
+
+        wrapper_kwargs = dict(cpu_offload=CPUOffload(offload_params=True))
+
+        with enable_wrap(wrapper_cls=FullyShardedDataParallel, **wrapper_kwargs):
+            for layer_name, layer in model.layers.named_children():
+                wrapped_layer = wrap(layer)
+                setattr(model.layers, layer_name, wrapped_layer)
+            model = wrap(model)
+
+        return model
         return encoder_out['encoder_out'][0][1:-1, 0]
     def __len__(self):
         if cluster:
