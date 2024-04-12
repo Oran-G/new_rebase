@@ -305,7 +305,7 @@ class EncoderDataset(Dataset):
                 encoder_out = self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False)
                 # remove beginning and end (bos and eos tokens)
                 embeddings = encoder_out['encoder_out'][0].transpose(0, 1)[:, 1:-1, :]
-                import pdb; pdb.set_trace()
+                #import pdb; pdb.set_trace()
                 for i in range(batch['seq'].shape[0]):
                     self.data.append({
                         'seq': batch['seq'][i][int(self.eos):batch['lens'][i]+int(self.eos)],
