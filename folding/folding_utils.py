@@ -247,33 +247,34 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
         }
         return post_proccessed
 
+
+
 def enable_cpu_offloading(model):
     """
-    Enable CPU offloading for a PyTorch model when CUDA memory is used up.
+    Enable CPU offloading for a PyTorch model to manage GPU memory.
     """
+
     def forward_hook(module, inputs, outputs):
-        if isinstance(outputs, torch.Tensor):
-            outputs = outputs.cpu()
-        elif isinstance(outputs, tuple):
-            outputs = tuple(out.cpu() if isinstance(out, torch.Tensor) else out for out in outputs)
-        elif isinstance(outputs, list):
-            outputs = [out.cpu() if isinstance(out, torch.Tensor) else out for out in outputs]
+        if torch.cuda.memory_allocated() > some_memory_threshold:
+            if isinstance(outputs, torch.Tensor):
+                outputs = outputs.cpu()
+            elif isinstance(outputs, tuple):
+                outputs = tuple(out.cpu() if isinstance(out, torch.Tensor) else out for out in outputs)
+            elif isinstance(outputs, list):
+                outputs = [out.cpu() if isinstance(out, torch.Tensor) else out for out in outputs]
         return outputs
 
+    # Here you could log or track gradient sizes, but modifying them directly is not advised
     def backward_hook(module, grad_input, grad_output):
-        if isinstance(grad_input, torch.Tensor):
-            grad_input = grad_input.cpu()
-        elif isinstance(grad_input, tuple):
-            grad_input = tuple(gi.cpu() if isinstance(gi, torch.Tensor) else gi for gi in grad_input)
-        elif isinstance(grad_input, list):
-            grad_input = [gi.cpu() if isinstance(gi, torch.Tensor) else gi for gi in grad_input]
-        return grad_input
+        # Example of logging or processing without direct modification
+        pass
 
     for module in model.modules():
         module.register_forward_hook(forward_hook)
-        module.register_backward_hook(backward_hook)
+        module.register_full_backward_hook(backward_hook)
 
     return model
+
 class EncoderDataset(Dataset):
     def __init__(self, dataset, batch_size, device, path, cluster=True, eos=True):
 
