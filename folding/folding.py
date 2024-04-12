@@ -311,6 +311,7 @@ class RebaseT5(pl.LightningModule):
 
 @hydra.main(config_path='../configs', config_name='defaults')
 def main(cfg: DictConfig) -> None:
+    os.system('export TORCH_HOME=/vast/og2114/torch_home')
     print(OmegaConf.to_yaml(cfg))
     
     model = RebaseT5(cfg)
