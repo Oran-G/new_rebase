@@ -283,6 +283,7 @@ class EncoderDataset(Dataset):
         self.dataset = dataset
         self.device = device
         self.batch_size = batch_size
+        print(self.batch_size)
         #check if file exists at path, if so load it, if not create it
         if os.path.isfile(path):
             with open(path, 'rb') as f:
@@ -296,7 +297,7 @@ class EncoderDataset(Dataset):
             self.ifmodel, self.ifalphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
             self.ifmodel = self.ifmodel.to(self.device)
             self.ifmodel = self.ifmodel.eval()
-            self.ifmodel = enable_cpu_offloading(self.ifmodel)
+            #self.ifmodel = enable_cpu_offloading(self.ifmodel)
             for step, batch in enumerate(self.dataloader):
                 #predict the encoder output using self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False). 
                 # if GPU runs out of memory, use sharding
