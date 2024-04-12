@@ -25,7 +25,7 @@ import wandb
 import csv
 import random
 import torch
-
+import pickle
 class CSVDataset(Dataset):
     def __init__(self, csv_path, split, split_seed=42, supervised=True, plddt=85, clust=False):
         super().__init__()
