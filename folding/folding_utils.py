@@ -47,7 +47,7 @@ class CSVDataset(Dataset):
         print("pre filter",len(self.df))
         def alpha(ids):
             return os.path.isfile(f'/vast/og2114/rebase/20220519/output/{ids}/ranked_0.pdb') and (max(json.load(open(f'/vast/og2114/rebase/20220519/output/{ids}/ranking_debug.json'))['plddts'].values()) >= plddt)
-        self.df  = self.df[self.df['id'].apply(alpha) ==True ]
+        #self.df  = self.df[self.df['id'].apply(alpha) ==True ]
         self.df = self.df[self.df['id'] != 'Csp7507ORF4224P']
         print("post filter",len(self.df))
         spl = self.split(split)
