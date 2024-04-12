@@ -305,14 +305,14 @@ class EncoderDataset(Dataset):
                 encoder_out = self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False)
                 # remove beginning and end (bos and eos tokens)
                 
-                embeddings = encoder_out['encoder_out'][0][1:-1, 0]
+                embeddings = encoder_out['encoder_out'][0].transpose(0, 1)[:, 1:-1, :]
                 import pdb; pdb.set_trace()
                 for i in range(batch['seq'].shape[0]):
                     self.data.append({
                         'seq': batch['seq'][i][int(self.eos):batch['lens'][i]+int(self.eos)],
                         'bind': batch['bind'][i][int(self.eos):batch['bind_lens'][i]+int(self.eos)],
                         'coords': batch['coords'][i][:batch['lens'][i]],
-                        'seq_enc': embeddings['encoder_out'][0].transpose(0, 1)[i, :batch['lens'][i], :], 
+                        'seq_enc': embeddings[i, :batch['lens'][i], :], 
                         'cluster': batch['cluster'][i]
                     })
                 #augment self.data from form list[dict[..., cluster]] to list[list`dict[..., cluster]]], where the inner list is a list of dicts with the same cluster
