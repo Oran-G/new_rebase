@@ -10,4 +10,4 @@
 #SBATCH --job-name='ESM-2 embeddings script'
 #SBATCH --signal=SIGUSR1@90
 module purge
-singularity exec --nv --overlay /vast/og2114/rebase/inverse_fold.ext3:ro /vast/work/public/singularity/cuda11.2.2-cudnn8-devel-ubuntu20.04.sif /bin/bash -c 'source /ext3/env.sh; python3 /vast/og2114/new_rebase/fasta_preproccess.py'
+singularity exec --nv --overlay /vast/og2114/rebase/inverse_fold.ext3:ro /vast/work/public/singularity/cuda11.2.2-cudnn8-devel-ubuntu20.04.sif /bin/bash -c 'source /ext3/env.sh; export TORCH_HOME=/vast/og2114/torch_home; python3 /vast/og2114/new_rebase/fasta_preproccess.py'
