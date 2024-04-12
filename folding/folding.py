@@ -179,7 +179,7 @@ class RebaseT5(pl.LightningModule):
         )
         
 
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=2, device=self.device, path=self.hparams.io.val_embedded), 
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=4, device=4, path=self.hparams.io.val_embedded), 
         dataloader = DataLoader(encoder_dataset, batch_size=2, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         return dataloader 
     def val_dataloader(self):
@@ -202,7 +202,7 @@ class RebaseT5(pl.LightningModule):
             apply_eos=True,
             apply_bos=False,
         )
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=self.batch_size, device=self.device, path=self.hparams.io.val_embedded), 
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=4, device=self.device, path=self.hparams.io.val_embedded), 
         dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         return dataloader 
 
