@@ -24,6 +24,7 @@ import json
 import wandb
 import csv
 import random
+import torch
 
 class CSVDataset(Dataset):
     def __init__(self, csv_path, split, split_seed=42, supervised=True, plddt=85, clust=False):
@@ -246,6 +247,33 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
         }
         return post_proccessed
 
+def enable_cpu_offloading(model):
+    """
+    Enable CPU offloading for a PyTorch model when CUDA memory is used up.
+    """
+    def forward_hook(module, inputs, outputs):
+        if isinstance(outputs, torch.Tensor):
+            outputs = outputs.cpu()
+        elif isinstance(outputs, tuple):
+            outputs = tuple(out.cpu() if isinstance(out, torch.Tensor) else out for out in outputs)
+        elif isinstance(outputs, list):
+            outputs = [out.cpu() if isinstance(out, torch.Tensor) else out for out in outputs]
+        return outputs
+
+    def backward_hook(module, grad_input, grad_output):
+        if isinstance(grad_input, torch.Tensor):
+            grad_input = grad_input.cpu()
+        elif isinstance(grad_input, tuple):
+            grad_input = tuple(gi.cpu() if isinstance(gi, torch.Tensor) else gi for gi in grad_input)
+        elif isinstance(grad_input, list):
+            grad_input = [gi.cpu() if isinstance(gi, torch.Tensor) else gi for gi in grad_input]
+        return grad_input
+
+    for module in model.modules():
+        module.register_forward_hook(forward_hook)
+        module.register_backward_hook(backward_hook)
+
+    return model
 class EncoderDataset(Dataset):
     def __init__(self, dataset, batch_size, device, path, cluster=True, eos=True):
 
@@ -266,7 +294,7 @@ class EncoderDataset(Dataset):
             self.ifmodel, self.ifalphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
             self.ifmodel = self.ifmodel.to(self.device)
             self.ifmodel = self.ifmodel.eval()
-            self.ifmodel = self.enable_cpu_offloading(self.ifmodel)
+            self.ifmodel = enable_cpu_offloading(self.ifmodel)
             for step, batch in enumerate(self.dataloader):
                 #predict the encoder output using self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False). 
                 # if GPU runs out of memory, use sharding
@@ -290,24 +318,8 @@ class EncoderDataset(Dataset):
             self.path = path
         if cluster:
             self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
-    def enable_cpu_offloading(self, model):
-        from torch.distributed.fsdp import CPUOffload, FullyShardedDataParallel
-        from torch.distributed.fsdp.wrap import enable_wrap, wrap
 
-        torch.distributed.init_process_group(
-            backend="nccl", init_method="tcp://localhost:9999", world_size=1, rank=0
-        )
-
-        wrapper_kwargs = dict(cpu_offload=CPUOffload(offload_params=True))
-
-        with enable_wrap(wrapper_cls=FullyShardedDataParallel, **wrapper_kwargs):
-            for layer_name, layer in model.layers.named_children():
-                wrapped_layer = wrap(layer)
-                setattr(model.layers, layer_name, wrapped_layer)
-            model = wrap(model)
-
-        return model
-        return encoder_out['encoder_out'][0][1:-1, 0]
+        
     def __len__(self):
         if cluster:
             return len(self.clustered_data)
