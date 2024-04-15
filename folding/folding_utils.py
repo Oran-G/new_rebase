@@ -359,6 +359,7 @@ class EncoderDataset(Dataset):
             tokens[:, 0] = self.dictionary.get_idx('<af2>')
         print(batch[0].shape)
         print(tokens.shape)
+        import pdb; pdb.set_trace()
         for idx, el in enumerate(batch):
             
             tokens[idx, int(bos):(el.size(0) + int(bos))] = el
