@@ -230,8 +230,8 @@ class RebaseT5(pl.LightningModule):
 
     def configure_optimizers(self):
         opt = torch.optim.AdamW([
-                {'params': self.ifmodel.parameters(), 'lr': float(self.hparams.model.lr)/5},  
-                {'params': self.model.parameters()}], 
+                #{'params': self.ifmodel.parameters(), 'lr': float(self.hparams.model.lr)/5},  
+                {'params': self.model.decoder.parameters()}], 
             lr=float(self.hparams.model.lr))
         # return opt
 
