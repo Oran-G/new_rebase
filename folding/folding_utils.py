@@ -364,7 +364,7 @@ class EncoderDataset(Dataset):
             tokens[idx, int(bos):(batch[idx].size(0) + int(bos))] = batch[idx]
             if eos:
                 tokens[idx, batch[idx].size(0) + int(bos)] = self.dictionary.eos_idx
-    
+        print(tokens.shape)
         return tokens
         
             
