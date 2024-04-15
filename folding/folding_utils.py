@@ -291,7 +291,6 @@ class EncoderDataset(Dataset):
         if os.path.isfile(path):
             with open(path, 'rb') as f:
                 self.data = pickle.load(f)
-            return
         else:
             self.dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=dataset.collater)
             self.data = []
@@ -324,7 +323,7 @@ class EncoderDataset(Dataset):
             with open(path, 'wb') as f:
                 pickle.dump(self.data, f)
             self.path = path
-            print(len(self.data))
+            print('embeddings created', len(self.data))
         self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
         print('clustered_data', len(self.clustered_data))
 
@@ -335,7 +334,7 @@ class EncoderDataset(Dataset):
         return len(self.data)
     def __getitem__(self, idx):
         if self.cluster:
-            return self.clustered_data[idx][self.cluster_idxs[idx]][random.randint(0, (len(self.clustered_data[idx])-1))]
+            return self.clustered_data[idx][random.randint(0, (len(self.clustered_data[idx])-1))]
         return self.data[idx]
     def collate_tensors(self, batch: List[torch.tensor], bos=None, eos=None):
         if bos == None:
