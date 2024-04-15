@@ -360,7 +360,7 @@ class EncoderDataset(Dataset):
 
 
         for idx in range(len(batch)):
-            print(idx)
+            print('idx', idx)
             tokens[idx, int(bos):(batch[idx].size(0) + int(bos))] = batch[idx]
             if eos:
                 tokens[idx, batch[idx].size(0) + int(bos)] = self.dictionary.eos_idx
