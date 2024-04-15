@@ -284,6 +284,7 @@ class EncoderDataset(Dataset):
         self.dataset = dataset
         self.device = device
         self.batch_size = batch_size
+        self.cluster = cluster
         
         #check if file exists at path, if so load it, if not create it
         if os.path.isfile(path):
@@ -328,11 +329,11 @@ class EncoderDataset(Dataset):
 
         
     def __len__(self):
-        if cluster:
+        if self.cluster:
             return len(self.clustered_data)
         return len(self.data)
     def __getitem__(self, idx):
-        if cluster:
+        if self.cluster:
             return self.clustered_data[idx][self.cluster_idxs[idx]][random.randint(0, (len(self.clustered_data[idx])-1))]
         return self.data[idx]
     def collate_tensors(self, batch: List[torch.tensor], bos=None, eos=None):
