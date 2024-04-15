@@ -124,7 +124,7 @@ class RebaseT5(pl.LightningModule):
         
 
         self.log('train_loss', float(loss.item()), on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log('train_acc',float(self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2), batch['bind'])), on_step=True, on_epoch=True, prog_bar=False, logger=True) #accuracy using torchmetrics accuracy
+        self.log('train_acc',float(self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2), batch['bind'].long())), on_step=True, on_epoch=True, prog_bar=False, logger=True) #accuracy using torchmetrics accuracy
         self.log('length', int(pred[1].shape[-2]),  on_step=True,  logger=True) # length of prediction
         self.log('train_time', time.time()- start_time, on_step=True, on_epoch=True, prog_bar=True, logger=True) # step time
        
@@ -148,7 +148,7 @@ class RebaseT5(pl.LightningModule):
         loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'].long())
         
         self.log('val_loss', float(loss.item()), on_step=True, on_epoch=True, prog_bar=False, logger=True)
-        self.log('val_acc', float(self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2), batch['bind'])), on_step=True, on_epoch=True, prog_bar=False, logger=True)
+        self.log('val_acc', float(self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2), batch['bind'].long())), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         self.log('val_time', time.time()- start_time, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {
             'loss': loss,
