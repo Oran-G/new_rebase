@@ -221,7 +221,7 @@ class RebaseT5(pl.LightningModule):
         print(self.hparams.model.seq_identity)
         print(cs)
         dataset = folding_utils.EncodedFastaDatasetWrapper(
-            folding_utils.CSVDataset(cs, 'test', clust=self.hparams.model.sample_by_cluster),
+            folding_utils.CSVDataset(cs, 'val', clust=False),
             self.ifalphabet,
             apply_eos=True,
             apply_bos=False,
