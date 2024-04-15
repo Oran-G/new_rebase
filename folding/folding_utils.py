@@ -353,6 +353,7 @@ class EncoderDataset(Dataset):
                 *max_shape
             ),
             dtype=torch.int64,
+            device=batch[0].device
         ).fill_(self.dictionary.padding_idx)
 
         if bos:
