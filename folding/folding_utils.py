@@ -386,7 +386,6 @@ class EncoderDataset(Dataset):
 
         def select_by_key(lst: List[Dict], key):
             return [el[key] for el in lst]
-        # encs = [enc.to(torch.device('cpu')) for enc in select_by_key(batch, 'seq_enc')]
         post_proccessed = {
             'bind': self.collate_tensors(select_by_key(batch, 'bind'), bos=False, eos=True),
             'seq': self.collate_tensors(select_by_key(batch, 'seq'), bos=False, eos=True),

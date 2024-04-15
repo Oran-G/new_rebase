@@ -114,10 +114,9 @@ class RebaseT5(pl.LightningModule):
         label = batch['bind']
         label[label==self.ifalphabet.padding_idx] = -100
 
-        try:
-            pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
-        except RuntimeError:
-            print(batch, batch_idx)
+
+        pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
+
         
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         #import pdb; pdb.set_trace()
@@ -143,10 +142,7 @@ class RebaseT5(pl.LightningModule):
 
         label = batch['bind']
         label[label==self.ifalphabet.padding_idx] = -100
-        try:
-            pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
-        except RuntimeError:
-            print(token_representations['encoder_out'], batch, batch_idx)
+        pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
         
