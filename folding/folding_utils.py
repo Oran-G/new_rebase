@@ -359,12 +359,14 @@ class EncoderDataset(Dataset):
             tokens[:, 0] = self.dictionary.get_idx('<af2>')
         print(batch[0].shape)
         print(tokens.shape)
-        import pdb; pdb.set_trace()
-        for idx, el in enumerate(batch):
-            
-            tokens[idx, int(bos):(el.size(0) + int(bos))] = el
-            if eos:
-                tokens[idx, el.size(0) + int(bos)] = self.dictionary.eos_idx
+        try:
+            for idx, el in enumerate(batch):
+                
+                tokens[idx, int(bos):(el.size(0) + int(bos))] = el
+                if eos:
+                    tokens[idx, el.size(0) + int(bos)] = self.dictionary.eos_idx
+        except Exception as e:
+            import pdb; pdb.set_trace()
         
         return tokens
         
