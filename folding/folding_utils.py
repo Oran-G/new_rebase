@@ -354,7 +354,7 @@ class EncoderDataset(Dataset):
             ),
             dtype=torch.int64,
 
-        ).fill_(self.dictionary.padding_idx).to(batch[0].device)
+        ).fill_(self.dictionary.padding_idx)
 
 
         if bos:
@@ -383,7 +383,7 @@ class EncoderDataset(Dataset):
 
         def select_by_key(lst: List[Dict], key):
             return [el[key] for el in lst]
-            
+
         post_proccessed = {
             'bind': self.collate_tensors(select_by_key(batch, 'bind'), bos=False, eos=True),
             'seq': self.collate_tensors(select_by_key(batch, 'seq'), bos=False, eos=True),
