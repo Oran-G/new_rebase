@@ -179,7 +179,7 @@ class RebaseT5(pl.LightningModule):
         )
         
 
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=4, device=4, path=self.hparams.io.val_embedded), 
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=4, device=4, path=self.hparams.io.val_embedded)
         dataloader = DataLoader(encoder_dataset, batch_size=2, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         return dataloader 
     def val_dataloader(self):
@@ -197,7 +197,7 @@ class RebaseT5(pl.LightningModule):
         print(self.hparams.model.seq_identity)
         print(cs)
         dataset = folding_utils.EncodedFastaDatasetWrapper(
-            folding_utils.CSVDataset(cs, 'val', clust=self.hparams.model.sample_by_cluster),
+            folding_utils.CSVDataset(cs, 'val', clust=False),
             self.ifalphabet,
             apply_eos=True,
             apply_bos=False,
@@ -206,7 +206,7 @@ class RebaseT5(pl.LightningModule):
         dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         return dataloader 
 
-    def val_dataloader(self):
+    def test_dataloader(self):
         if str(self.hparams.model.seq_identity)== '0.9':
             print(".9 seq")
             cs = f'{self.hparams.io.final}-9'
@@ -221,7 +221,7 @@ class RebaseT5(pl.LightningModule):
         print(self.hparams.model.seq_identity)
         print(cs)
         dataset = folding_utils.EncodedFastaDatasetWrapper(
-            folding_utils.CSVDataset(cs, 'val', clust=False),
+            folding_utils.CSVDataset(cs, 'test', clust=False),
             self.ifalphabet,
             apply_eos=True,
             apply_bos=False,
