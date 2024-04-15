@@ -339,9 +339,9 @@ class EncoderDataset(Dataset):
         return self.data[idx]
     def collate_tensors(self, batch: List[torch.tensor], bos=None, eos=None):
         if bos == None:
-            bos = self.apply_bos
+            bos = self.dataset.apply_bos
         if eos == None:
-            eos = self.apply_eos
+            eos = self.dataset.apply_eos
         
         batch_size = len(batch)
         beos = int(bos) + int(eos)
