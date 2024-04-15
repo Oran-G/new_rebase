@@ -359,11 +359,11 @@ class EncoderDataset(Dataset):
             tokens[:, 0] = self.dictionary.get_idx('<af2>')
 
         try:
-            for idx, el in enumerate(batch):
+            for idx in range((batch)):
                 print(idx)
-                tokens[idx, int(bos):(el.size(0) + int(bos))] = el
+                tokens[idx, int(bos):(batch[idx].size(0) + int(bos))] = batch[idx]
                 if eos:
-                    tokens[idx, el.size(0) + int(bos)] = self.dictionary.eos_idx
+                    tokens[idx, batch[idx].size(0) + int(bos)] = self.dictionary.eos_idx
         except Exception as e:
             print(batch[0].shape)
             print(len(batch))
