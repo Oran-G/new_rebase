@@ -294,6 +294,7 @@ class EncoderDataset(Dataset):
                 self.data = pickle.load(f)
             for i in range(len(self.data)):
                 self.data[i]['seq_enc'] = self.data[i]['seq_enc'].to(torch.device('cpu'))
+
                 
         else:
             self.dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=dataset.collater)
@@ -330,7 +331,7 @@ class EncoderDataset(Dataset):
             print('embeddings created', len(self.data))
         self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
         print('clustered_data clusters present:', len(self.clustered_data))
-
+        import pdb; pdb.set_trace()
         
     def __len__(self):
         if self.cluster:
