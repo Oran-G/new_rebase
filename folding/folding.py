@@ -114,13 +114,13 @@ class RebaseT5(pl.LightningModule):
         label = batch['bind']
         label[label==self.ifalphabet.padding_idx] = -100
 
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label.long())
 
         
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         #import pdb; pdb.set_trace()
-        loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
+        loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'].long())
         
 
         self.log('train_loss', float(loss.item()), on_step=True, on_epoch=True, prog_bar=True, logger=True)
@@ -142,10 +142,10 @@ class RebaseT5(pl.LightningModule):
 
         label = batch['bind']
         label[label==self.ifalphabet.padding_idx] = -100
-        import pdb; pdb.set_trace()
-        pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
+        # import pdb; pdb.set_trace()
+        pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label.long())
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
-        loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
+        loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'].long())
         
         self.log('val_loss', float(loss.item()), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         self.log('val_acc', float(self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2), batch['bind'])), on_step=True, on_epoch=True, prog_bar=False, logger=True)
