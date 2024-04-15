@@ -358,7 +358,7 @@ class EncoderDataset(Dataset):
         if bos:
             tokens[:, 0] = self.dictionary.get_idx('<af2>')
 
-
+        print(range(len(batch)))
         for idx in range(len(batch)):
             print('idx', idx)
             tokens[idx, int(bos):(batch[idx].size(0) + int(bos))] = batch[idx]
