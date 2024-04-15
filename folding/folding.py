@@ -115,7 +115,7 @@ class RebaseT5(pl.LightningModule):
         label[label==self.ifalphabet.padding_idx] = -100
 
         import pdb; pdb.set_trace()
-        pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
+        pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label.long())
 
         
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
