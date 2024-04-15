@@ -45,14 +45,16 @@ class CSVDataset(Dataset):
             self.df = self.df.dropna()
         
         #import pdb; pdb.set_trace()       
-        print("pre filter",len(self.df))
+        
         def alpha(ids):
             return os.path.isfile(f'/vast/og2114/rebase/20220519/output/{ids}/ranked_0.pdb') and (max(json.load(open(f'/vast/og2114/rebase/20220519/output/{ids}/ranking_debug.json'))['plddts'].values()) >= plddt)
 
         self.df = self.df[self.df['id'] != 'Csp7507ORF4224P']
-        print("post filter",len(self.df))
+        
         spl = self.split(split)
-        #spl = spl[spl['id'].apply(alpha) ==True ]
+        print("pre filter",len(self.df))
+        spl = spl[spl['id'].apply(alpha) ==True ]
+        print("post filter",len(spl))
         self.data = spl[['seq','bind', 'id', 'cluster']].to_dict('records')
         print(len(self.data))
         self.data = [x for x in self.data if x not in self.data[16*711:16*714]]
@@ -72,8 +74,7 @@ class CSVDataset(Dataset):
         if self.use_cluster == False:
             return self.data[idx]
         else:
-            if  True:
-                return self.clustered_data[self.cluster_idxs[idx]][random.randint(0, (len(self.clustered_data[self.cluster_idxs[idx]])-1))]
+            return self.clustered_data[self.cluster_idxs[idx]][random.randint(0, (len(self.clustered_data[self.cluster_idxs[idx]])-1))]
 
     def __len__(self):
         if self.use_cluster== False:
