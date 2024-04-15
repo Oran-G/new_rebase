@@ -176,8 +176,9 @@ class RebaseT5(pl.LightningModule):
         )
         
 
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=4, device=4, path=self.hparams.io.val_embedded)
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=4, device=4, path=self.hparams.io.val_embedded, cluster=False)
         dataloader = DataLoader(encoder_dataset, batch_size=2, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
+        print('train dataset length:', len(encoder_dataset))        
         return dataloader 
     def val_dataloader(self):
         if str(self.hparams.model.seq_identity)== '0.9':
@@ -199,8 +200,9 @@ class RebaseT5(pl.LightningModule):
             apply_eos=True,
             apply_bos=False,
         )
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=4, device=self.device, path=self.hparams.io.val_embedded)
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=4, device=self.device, path=self.hparams.io.val_embedded, cluster=False)
         dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
+        print('val dataset length:', len(encoder_dataset))
         return dataloader 
 
     def test_dataloader(self):
