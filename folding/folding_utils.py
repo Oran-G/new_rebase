@@ -355,25 +355,21 @@ class EncoderDataset(Dataset):
                 batch_size, 
                 *max_shape
             ),
-            dtype=torch.int64,
+            dtype=torch.float,
 
         ).fill_(self.dictionary.padding_idx)
 
 
         if bos:
             tokens[:, 0] = self.dictionary.get_idx('<af2>')
-        print('batch', len(batch))
-        print(tokens.shape)
-        print(range(len(batch)))
-        print(batch[0].device)
-        print(tokens.device)
+
 
         for idx in range(len(batch)):
-            print('idx', idx)
+  
             tokens[idx, int(bos):(batch[idx].size(0) + int(bos))] = batch[idx]
             if eos:
                 tokens[idx, batch[idx].size(0) + int(bos)] = self.dictionary.eos_idx
-        print(tokens.shape)
+
         return tokens
         
             
