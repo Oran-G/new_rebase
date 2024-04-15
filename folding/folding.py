@@ -227,6 +227,7 @@ class RebaseT5(pl.LightningModule):
             apply_bos=False,
         )
         encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=4, device=self.device, path=self.hparams.io.val_embedded), 
+        import pdb; pdb.set_trace()
         dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         return dataloader 
 
@@ -300,10 +301,12 @@ class RebaseT5(pl.LightningModule):
 
         torch.cuda.empty_cache()
         
-        token_representations = self.ifmodel.encoder(batch['coords'], batch['coord_pad'], batch['coord_conf'])
         label = batch['bind']
         label[label==self.ifalphabet.padding_idx] = -100
-        pred = self.model(encoder_outputs=[torch.transpose(token_representations['encoder_out'][0], 0, 1)], labels=label)
+        try:
+            pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
+        except RuntimeError:
+            print(token_representations['encoder_out'], batch, batch_idx)
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
         '''
