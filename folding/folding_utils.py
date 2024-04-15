@@ -353,8 +353,9 @@ class EncoderDataset(Dataset):
                 *max_shape
             ),
             dtype=torch.int64,
-            device=batch[0].device
-        ).fill_(self.dictionary.padding_idx)
+
+        ).fill_(self.dictionary.padding_idx).to(batch[0].device)
+
 
         if bos:
             tokens[:, 0] = self.dictionary.get_idx('<af2>')
