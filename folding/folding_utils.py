@@ -292,6 +292,9 @@ class EncoderDataset(Dataset):
         if os.path.isfile(path):
             with open(path, 'rb') as f:
                 self.data = pickle.load(f)
+            for i in range(len(self.data)):
+                self.data[i]['seq_enc'] = self.data[i]['seq_enc'].to(torch.device('cpu'))
+                
         else:
             self.dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=dataset.collater)
             self.data = []
