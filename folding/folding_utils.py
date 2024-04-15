@@ -345,7 +345,8 @@ class EncoderDataset(Dataset):
         
         batch_size = len(batch)
         beos = int(bos) + int(eos)
-        max_shape = [max(el.size(i) for el in batch) + beos for i in range(len(batch[0].shape))]
+        max_shape = [max(el.size(i) for el in batch)  for i in range(len(batch[0].shape))]
+        max_shape[0] = max_shape[0] + beos
         tokens = torch.empty(
             (
                 batch_size, 
