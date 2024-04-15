@@ -315,7 +315,7 @@ class EncoderDataset(Dataset):
                         'seq': batch['seq'][i][int(self.eos):batch['lens'][i]+int(self.eos)],
                         'bind': batch['bind'][i][int(self.eos):batch['bind_lens'][i]+int(self.eos)],
                         'coords': batch['coords'][i][:batch['lens'][i]],
-                        'seq_enc': embeddings[i, :batch['lens'][i], :], 
+                        'seq_enc': embeddings[i, :batch['lens'][i], :].to(torch.device('cpu')), 
                         'cluster': batch['cluster'][i]
                     })
                 #augment self.data from form list[dict[..., cluster]] to list[list`dict[..., cluster]]], where the inner list is a list of dicts with the same cluster
@@ -383,13 +383,13 @@ class EncoderDataset(Dataset):
 
         def select_by_key(lst: List[Dict], key):
             return [el[key] for el in lst]
-        encs = [enc.to(torch.device('cpu')) for enc in select_by_key(batch, 'seq_enc')]
+        # encs = [enc.to(torch.device('cpu')) for enc in select_by_key(batch, 'seq_enc')]
         post_proccessed = {
             'bind': self.collate_tensors(select_by_key(batch, 'bind'), bos=False, eos=True),
             'seq': self.collate_tensors(select_by_key(batch, 'seq'), bos=False, eos=True),
             'lens': [len(l) for l in select_by_key(batch, 'seq')],
             'bind_lens': [len(l) for l in select_by_key(batch, 'bind')], 
             'cluster': select_by_key(batch, 'cluster'),
-            'seq_enc': self.collate_tensors(encs) #shape (B, l, emb)
+            'seq_enc': self.collate_tensors(select_by_key(batch, 'seq_enc')) #shape (B, l, emb)
         }
         return post_proccessed
