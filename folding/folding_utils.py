@@ -284,7 +284,7 @@ class EncoderDataset(Dataset):
         self.dataset = dataset
         self.device = device
         self.batch_size = batch_size
-        print(self.batch_size)
+        
         #check if file exists at path, if so load it, if not create it
         if os.path.isfile(path):
             with open(path, 'rb') as f:
@@ -295,6 +295,7 @@ class EncoderDataset(Dataset):
             self.data = []
             self.eos = eos
             print(f'creating embeddings saving to {path}')
+            print(f'batch size: {self.batch_size}')
             self.ifmodel, self.ifalphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
             self.ifmodel = self.ifmodel.to(self.device)
             self.ifmodel = self.ifmodel.eval()
