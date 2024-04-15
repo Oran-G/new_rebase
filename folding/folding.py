@@ -384,7 +384,7 @@ def main(cfg: DictConfig) -> None:
         default_root_dir=cfg.io.checkpoints,
         accumulate_grad_batches=max(1, int(64/model.batch_size)),
         precision=cfg.model.precision,
-        strategy=pl.DDPStrategy(find_unused_parameters=True),
+        strategy=pl.strategies.DDPStrategy(find_unused_parameters=True),
         log_every_n_steps=5,
         max_epochs=-1,
         gradient_clip_val=0.3,
