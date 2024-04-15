@@ -365,9 +365,9 @@ class EncoderDataset(Dataset):
                 if eos:
                     tokens[idx, el.size(0) + int(bos)] = self.dictionary.eos_idx
         except Exception as e:
-        print(batch[0].shape)
-        print(len(batch))
-        print(tokens.shape)
+            print(batch[0].shape)
+            print(len(batch))
+            print(tokens.shape)
         
         return tokens
         
