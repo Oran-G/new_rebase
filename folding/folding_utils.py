@@ -354,7 +354,7 @@ class EncoderDataset(Dataset):
             ),
             dtype=torch.int64,
 
-        ).fill_(self.dictionary.padding_idx).to(batch[0].device)
+        ).fill_(self.dictionary.padding_idx)
 
 
         if bos:
@@ -362,6 +362,8 @@ class EncoderDataset(Dataset):
         print('batch', len(batch))
         print(tokens.shape)
         print(range(len(batch)))
+        print(batch[0].device)
+        print(tokens.device)
         for idx in range(len(batch)):
             print('idx', idx)
             tokens[idx, int(bos):(batch[idx].size(0) + int(bos))] = batch[idx]
