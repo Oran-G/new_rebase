@@ -171,7 +171,7 @@ class RebaseT5(pl.LightningModule):
             cs = self.hparams.io.dnafinal
         print(cs)
         dataset = folding_utils.EncodedFastaDatasetWrapper(
-            folding_utils.CSVDataset(cs, 'train', clust=self.hparams.model.sample_by_cluster),
+            folding_utils.CSVDataset(cs, 'train', clust=False),
 
             self.ifalphabet,
             apply_eos=True,
