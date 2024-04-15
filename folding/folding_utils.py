@@ -315,7 +315,7 @@ class EncoderDataset(Dataset):
                         'seq': batch['seq'][i][int(self.eos):batch['lens'][i]+int(self.eos)],
                         'bind': batch['bind'][i][int(self.eos):batch['bind_lens'][i]+int(self.eos)],
                         'coords': batch['coords'][i][:batch['lens'][i]],
-                        'seq_enc': embeddings[i, :batch['lens'][i], :], 
+                        'seq_enc': embeddings[i, :batch['lens'][i], :].to(batch['seq'].device), 
                         'cluster': batch['cluster'][i]
                     })
                 #augment self.data from form list[dict[..., cluster]] to list[list`dict[..., cluster]]], where the inner list is a list of dicts with the same cluster
@@ -383,7 +383,7 @@ class EncoderDataset(Dataset):
 
         def select_by_key(lst: List[Dict], key):
             return [el[key] for el in lst]
-        
+            
         post_proccessed = {
             'bind': self.collate_tensors(select_by_key(batch, 'bind'), bos=False, eos=True),
             'seq': self.collate_tensors(select_by_key(batch, 'seq'), bos=False, eos=True),
