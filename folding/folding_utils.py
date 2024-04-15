@@ -325,7 +325,7 @@ class EncoderDataset(Dataset):
             self.path = path
             print(len(self.data))
         self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
-        print(len(self.clustered_data))
+        print('clustered_data', len(self.clustered_data))
 
         
     def __len__(self):
