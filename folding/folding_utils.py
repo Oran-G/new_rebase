@@ -354,7 +354,7 @@ class EncoderDataset(Dataset):
             ),
             dtype=torch.int64,
 
-        ).fill_(self.dictionary.padding_idx).to(batch[0].device))
+        ).fill_(self.dictionary.padding_idx).to(batch[0].device)
 
 
         if bos:
