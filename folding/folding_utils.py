@@ -52,7 +52,7 @@ class CSVDataset(Dataset):
         self.df = self.df[self.df['id'] != 'Csp7507ORF4224P']
         
         spl = self.split(split)
-        print("pre filter",len(self.df))
+        print("pre filter",len(spl))
         spl = spl[spl['id'].apply(alpha) ==True ]
         print("post filter",len(spl))
         self.data = spl[['seq','bind', 'id', 'cluster']].to_dict('records')
@@ -286,6 +286,7 @@ class EncoderDataset(Dataset):
         self.device = device
         self.batch_size = batch_size
         self.cluster = cluster
+        self.dictionary = self.dataset.dictionary
         
         #check if file exists at path, if so load it, if not create it
         if os.path.isfile(path):
@@ -325,7 +326,7 @@ class EncoderDataset(Dataset):
             self.path = path
             print('embeddings created', len(self.data))
         self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
-        print('clustered_data', len(self.clustered_data))
+        print('clustered_data clusters present:', len(self.clustered_data))
 
         
     def __len__(self):
