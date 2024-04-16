@@ -53,11 +53,11 @@ class CSVDataset(Dataset):
         self.df = self.df[self.df['id'] != 'Csp7507ORF4224P']
         
         spl = self.split(split)
-        print("pre filter",len(spl))
+        # print("pre filter",len(spl))
         # spl = spl[spl['id'].apply(alpha) ==True ]
-        print("post filter",len(spl))
+        # print("post filter",len(spl))
         self.data = spl[['seq','bind', 'id', 'cluster']].to_dict('records')
-        print(len(self.data))
+        # print(len(self.data))
         self.data = [x for x in self.data if x not in self.data[16*711:16*714]]
         self.clustered_data = {}
         tmp_clust = self.df.cluster.unique()
