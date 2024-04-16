@@ -303,7 +303,7 @@ class EncoderDataset(Dataset):
             print(f'creating embeddings saving to {path}')
             print(f'batch size: {self.batch_size}')
             self.ifmodel, self.ifalphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
-            self.ifmodel = self.ifmodel.to(self.device)
+            self.ifmodel = self.ifmodel.to(torch.device("cuda:0" if torch.cuda.is_available() else "cpu"))
             self.ifmodel = self.ifmodel.eval()
             #self.ifmodel = enable_cpu_offloading(self.ifmodel)
             print(len(self.dataset))
