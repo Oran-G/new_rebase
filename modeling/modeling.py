@@ -216,7 +216,7 @@ def main(cfg: DictConfig) -> None:
         logger=wandb_logger,
         callbacks=[checkpoint_callback, lr_monitor, acc_callback],
 
-        default_root_dir=cfg.io.checkpoints,\
+        default_root_dir=cfg.io.checkpoints,
         precision=cfg.model.precision,
         strategys='ddp',
         log_every_n_steps=5,
