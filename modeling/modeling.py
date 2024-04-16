@@ -120,7 +120,7 @@ class RebaseT5(pl.LightningModule):
     
     def train_dataloader(self):
         dataset =  modeling_utils.EmbeddedFastaDatasetWrapper(
-            modeling_utils.CSVDataset(self.cfg.io.final, 'train', self.cfg.model.name, self.cfg.io.embeddings_store_dir, clust=self.model.sample_by_cluster),
+            modeling_utils.CSVDataset(self.cfg.io.final, 'train', self.cfg.model.name, self.cfg.io.embeddings_store_dir, clust=self.cfg.model.sample_by_cluster),
             self.dictionary,
             self.cfg.model.name,
             self.cfg.io.embeddings_store_dir,
@@ -133,7 +133,7 @@ class RebaseT5(pl.LightningModule):
         return dataloader
     def val_dataloader(self):
         dataset = modeling_utils.EmbeddedFastaDatasetWrapper(
-            modeling_utils.CSVDataset(self.cfg.io.final, 'val', self.cfg.model.name, self.cfg.io.embeddings_store_dir, clust=self.model.sample_by_clusters),
+            modeling_utils.CSVDataset(self.cfg.io.final, 'val', self.cfg.model.name, self.cfg.io.embeddings_store_dir, clust=self.model.cfg.sample_by_clusters),
             self.dictionary,
             self.cfg.model.name,
             self.cfg.io.embeddings_store_dir,
