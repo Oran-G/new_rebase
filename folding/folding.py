@@ -42,8 +42,8 @@ class RebaseT5(pl.LightningModule):
             pass
         
         self.batch_size = self.hparams.model.batch_size
-        print("Argument hparams: ", self.hparams)
-        print('batch size', self.hparams.model.batch_size)
+        # print("Argument hparams: ", self.hparams)
+        # print('batch size', self.hparams.model.batch_size)
         
         '''
         model git - https://github.com/facebookresearch/esm/blob/main/esm/inverse_folding/gvp_transformer.py
@@ -338,7 +338,7 @@ class RebaseT5(pl.LightningModule):
 @hydra.main(config_path='../configs', config_name='defaults')
 def main(cfg: DictConfig) -> None:
     os.system('export TORCH_HOME=/vast/og2114/torch_home')
-    print(OmegaConf.to_yaml(cfg))
+    # print(OmegaConf.to_yaml(cfg))
     
     model = RebaseT5(cfg)
     gpu = cfg.model.gpu

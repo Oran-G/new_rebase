@@ -4,7 +4,7 @@ d_ff: 128
 d_model: 512
 batch_size: 512
 lr: 1e-3
-layers: 1
+layers: 3
 lr_patience: 100
 scheduler: True
 gpu: -1
