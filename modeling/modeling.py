@@ -198,7 +198,7 @@ def main(cfg: DictConfig) -> None:
 
         default_root_dir=cfg.io.checkpoints,
         precision=cfg.model.precision,
-        strategy='ddp',
+        strategy=pl.strategies.DDPStrategy(find_unused_parameters=True),
         log_every_n_steps=5,
 
         )
