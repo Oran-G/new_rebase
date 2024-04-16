@@ -101,10 +101,8 @@ class RebaseT5(pl.LightningModule):
         # make sure you don't take gradients through ESM-1b; do torch.no_grad()
         # alternatively, you can do this in __init__: [for parameter in self.esm1b_model.paramters(): parmater.requires_grad=False]
         # pass that ESM-1b hidden states into self.model(..., encoder_outputs=...)
-        if self.esm.esm:
-            output = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'])
-        else:
-            output = self.model(input_ids=batch['seq'], attention_mask=mask, labels=batch['bind'])
+        
+        output = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'])
 
         
         
@@ -126,10 +124,7 @@ class RebaseT5(pl.LightningModule):
         # 1 for tokens that are not masked; 0 for tokens that are masked
         mask = (batch['seq'] != self.dictionary.pad()).int()
         with torch.no_grad():
-            if self.esm.esm:
-                output = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'])
-            else:
-                output = self.model(input_ids=batch['seq'], attention_mask=mask, labels=batch['bind'])
+            output = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'])
         self.log('val_loss', float(output.loss), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         self.log('val_acc',float(accuracy(output['logits'].argmax(-1), batch['bind'], (batch['bind'] != self.dictionary.pad()).int())), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         return {
