@@ -3,7 +3,7 @@
 d_ff: 64
 d_kv: 64
 d_model: 640
-batch_size: 16
+batch_size: 128
 lr: 1e-2
 layers: 4
 lr_patience: 100
