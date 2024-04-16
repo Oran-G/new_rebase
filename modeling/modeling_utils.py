@@ -86,7 +86,7 @@ class EmbeddedFastaDatasetWrapper(BaseWrapperDataset):
     def __getitem__(self, idx):
         # desc, seq = self.dataset[idx]
         return {
-            'id': self.dataset[idx]['id']
+            'id': self.dataset[idx]['id'],
             'seq': self.dictionary.encode_line(self.dataset[idx]['seq'].replace(' ', ''), line_tokenizer=list, append_eos=False, add_if_not_exist=False).long(),
             'bind': self.dictionary.encode_line(self.dataset[idx]['bind'], line_tokenizer=list, append_eos=False, add_if_not_exist=False).long(),
             'cluster': self.dataset[idx]['cluster'],
@@ -97,7 +97,7 @@ class EmbeddedFastaDatasetWrapper(BaseWrapperDataset):
     def collate_tensors(self, batch: List[torch.tensor]):
 
         batch_size = len(batch)
-        beos = int(self.apply_bos) + int(self.apply_eos))
+        beos = int(self.apply_bos) + int(self.apply_eos)
         max_shape = [max(el.size(i) for el in batch)  for i in range(len(batch[0].shape))]
         max_shape[0] = max_shape[0] + beos
         tokens = torch.empty(
