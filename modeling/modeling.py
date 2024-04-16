@@ -218,7 +218,7 @@ def main(cfg: DictConfig) -> None:
         default_root_dir=cfg.io.checkpoints,
         accumulate_grad_batches=int(cfg.model.grad_batches),
         precision=cfg.model.precision,
-        accelerator='ddp',
+        strategy='ddp',
         log_every_n_steps=5,
 
         )
