@@ -314,9 +314,10 @@ class EncoderDataset(Dataset):
                 # if GPU runs out of memory, use sharding
                 try:
                     encoder_out = self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False)
-                    steps += 1
+                    steps = steps + 1
                 except:
                     print(steps)
+                    print(batch['coords'].shape)
                     steps = 0
                 # remove beginning and end (bos and eos tokens)
                 embeddings = encoder_out['encoder_out'][0].transpose(0, 1)[:, 1:-1, :]
