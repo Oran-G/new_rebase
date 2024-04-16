@@ -318,15 +318,9 @@ class EncoderDataset(Dataset):
                 except:
                     print(steps)
                     print(batch['coords'].shape)
-                    allocated_memory = torch.cuda.memory_allocated(0)
-                    cached_memory = torch.cuda.memory_reserved(0)
-                    print(f"Memory Allocated: {allocated_memory / (1024 ** 2):.2f} MB")
-                    print(f"Cached Memory: {cached_memory / (1024 ** 2):.2f} MB")
+                    print(torch.cuda.memory_summary())
                     torch.cuda.empty_cache()
-                    allocated_memory = torch.cuda.memory_allocated(0)
-                    cached_memory = torch.cuda.memory_reserved(0)
-                    print(f"Memory Allocated: {allocated_memory / (1024 ** 2):.2f} MB")
-                    print(f"Cached Memory: {cached_memory / (1024 ** 2):.2f} MB")
+                    print(torch.cuda.memory_summary())
                     steps = 0
                 # remove beginning and end (bos and eos tokens)
                 embeddings = encoder_out['encoder_out'][0].transpose(0, 1)[:, 1:-1, :]
