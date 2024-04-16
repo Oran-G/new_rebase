@@ -188,7 +188,7 @@ class RebaseT5(pl.LightningModule):
 
     
 
-@hydra.main(config_path='configs', config_name='defaults')
+@hydra.main(config_path='/vast/og2114/new_rebase/configs', config_name='defaults')
 def main(cfg: DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
     os.system('export TORCH_HOME=/vast/og2114/torch_home')
