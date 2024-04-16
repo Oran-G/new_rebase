@@ -28,22 +28,17 @@ class CSVDataset(Dataset):
         self.model_name = model
         self.embed_path = embed_path
         self.df = pd.read_csv(csv_path)
-        # print(self.df)
-        # print(self.df['seq'][0])
         if supervised:
             self.df = self.df.dropna()
-        # print(self.df['seq'].apply(len).mean())
-        # quit()
         def cat(x):
             return (x[:1023] if len(x) > 1024 else x)
-        # self.df['seq'] = self.df['seq'].apply(cat)
         self.data = self.split(split)[['id', 'seq', 'bind', 'cluster']].to_dict('records')
-    
         self.data = [x for x in self.data if x not in self.data[16*711:16*714]]
         for idx in range(len(self.data)):
             self.data[idx]['embedding'] = torch.load(f'{self.embed_path}/{self.model_name}/{self.data[idx]["id"]}.pt')['representations'][30].to(torch.device('cpu'))
         self.clustered = clust
         self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
+        print(f'Dataloader created: {len(self.data)} samples, {len(self.clustered_data)} clusters')
     
     def __getitem__(self, idx):
         if self.clustered:
