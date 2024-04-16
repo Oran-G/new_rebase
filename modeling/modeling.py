@@ -1,5 +1,5 @@
 import torch
-import lightning.torch as pl
+import lightning.pytorch as pl
 from transformers import T5Config, T5ForConditionalGeneration, get_linear_schedule_with_warmup
 from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrapperDataset
 from constants import tokenization
