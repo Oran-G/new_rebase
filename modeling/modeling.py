@@ -108,7 +108,7 @@ class RebaseT5(pl.LightningModule):
         # import pdb; pdb.set_trace()
         # 1 for tokens that are not masked; 0 for tokens that are masked
         mask = (batch['embedding'] != self.dictionary.pad()).int()
-        # import pdb; pdb.set_trace()
+        import pdb; pdb.set_trace()
         with torch.no_grad():
             output = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'].long())
         self.log('val_loss', float(output.loss), on_step=True, on_epoch=True, prog_bar=False, logger=True)
