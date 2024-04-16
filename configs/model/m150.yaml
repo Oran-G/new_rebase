@@ -3,9 +3,9 @@
 d_ff: 128
 d_kv: 128
 d_model: 640
-batch_size: 128
+batch_size: 32
 lr: 1e-2
-layers: 4
+layers: 6
 lr_patience: 100
 scheduler: True
 gpu: -1
