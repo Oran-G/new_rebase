@@ -1,0 +1,19 @@
+# d_ff: 128
+# d_model: 768
+d_ff: 256
+d_model: 512
+batch_size: 32
+lr: 1e-3
+layers: 6
+lr_patience: 100
+scheduler: True
+gpu: -1
+max_epochs: -1
+name: small
+precision: 32
+seq_identity: .3
+lrpower: 2
+dna_clust: False
+sample_by_cluster: True
+#size -> 1.6 million params
+#480 iters on RTX8000 at fp32
