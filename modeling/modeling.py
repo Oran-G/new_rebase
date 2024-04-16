@@ -91,8 +91,8 @@ class RebaseT5(pl.LightningModule):
 
         
         
-        self.log('train_loss', float(output.loss), on_step=True, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
-        self.log('train_acc',float(accuracy(output['logits'].argmax(-1), batch['bind'].long(), (batch['bind'] != -100).int())), on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
+        self.log('train_loss', float(output.loss), on_step=True, on_epoch=True, prog_bar=True, logger=True, sync_dist=True, batch_size=self.batch_size)
+        self.log('train_acc',float(accuracy(output['logits'].argmax(-1), batch['bind'].long(), (batch['bind'] != -100).int())), on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True, batch_size=self.batch_size)
         # self.log('train_perplex',float(self.perplexity(output['logits'], batch['bind'])), on_step=True, on_epoch=True, prog_bar=False, logger=True)
         
         return {
@@ -111,8 +111,8 @@ class RebaseT5(pl.LightningModule):
         # import pdb; pdb.set_trace()
         with torch.no_grad():
             output = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'].long())
-        self.log('val_loss', float(output.loss), on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
-        self.log('val_acc',float(accuracy(output['logits'].argmax(-1), batch['bind'].long(), (batch['bind'] != self.dictionary.pad()).int())), on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
+        self.log('val_loss', float(output.loss), on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True, batch_size=self.batch_size)
+        self.log('val_acc',float(accuracy(output['logits'].argmax(-1), batch['bind'].long(), (batch['bind'] != self.dictionary.pad()).int())), on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True, batch_size=self.batch_size)
         return {
             'loss': output.loss,
             'batch_size': batch['seq'].size(0)
