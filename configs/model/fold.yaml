@@ -2,7 +2,7 @@
 # d_model: 768
 d_ff: 128
 d_model: 512
-batch_size: 512
+batch_size: 64
 lr: 1e-3
 layers: 3
 lr_patience: 100

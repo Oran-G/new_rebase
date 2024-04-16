@@ -206,30 +206,6 @@ class RebaseT5(pl.LightningModule):
         print('val dataset length:', len(encoder_dataset))
         return dataloader 
 
-    def test_dataloader(self):
-        if str(self.hparams.model.seq_identity)== '0.9':
-            print(".9 seq")
-            cs = f'{self.hparams.io.final}-9'
-        elif str(self.hparams.model.seq_identity) == '0.7':
-            print('.7 seq')
-            cs = f'{self.hparams.io.final}-7'
-        else:
-            cs = self.hparams.io.final
-        
-        if self.hparams.model.dna_clust == True:
-            cs = self.hparams.io.dnafinal
-        print(self.hparams.model.seq_identity)
-        print(cs)
-        dataset = folding_utils.EncodedFastaDatasetWrapper(
-            folding_utils.CSVDataset(cs, 'test', clust=False),
-            self.ifalphabet,
-            apply_eos=True,
-            apply_bos=False,
-        )
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=4, device=self.device, path=self.hparams.io.val_embedded)
-        # import pdb; pdb.set_trace()
-        dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
-        return dataloader 
 
     def configure_optimizers(self):
         opt = torch.optim.AdamW([
