@@ -312,16 +312,10 @@ class EncoderDataset(Dataset):
                 torch.cuda.empty_cache()
                 #predict the encoder output using self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False). 
                 # if GPU runs out of memory, use sharding
-                try:
-                    with torch.no_grad():
-                        encoder_out = self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False)
-                    steps = steps + 1
-                except:
-                    print(steps)
-                    print(batch['coords'].shape)
-                    torch.cuda.empty_cache()
-                    print(torch.cuda.memory_summary())
-                    steps = 0
+
+                with torch.no_grad():
+                    encoder_out = self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False)
+                    
                 # remove beginning and end (bos and eos tokens)
                 embeddings = encoder_out['encoder_out'][0].transpose(0, 1)[:, 1:-1, :]
                 #import pdb; pdb.set_trace()
