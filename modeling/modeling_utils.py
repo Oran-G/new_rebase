@@ -21,6 +21,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import torch
 import itertools
 import pandas as pd
+import os
 class CSVDataset(Dataset):
     def __init__(self, csv_path, split, model, embed_path, clust=True, split_seed=42, supervised=True):
         super().__init__()
