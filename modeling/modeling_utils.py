@@ -83,7 +83,7 @@ class EmbeddedFastaDatasetWrapper(BaseWrapperDataset):
         self.model_name = model
         self.embed_path = embed_path
         #check if f'{embed_path}/{model_name}/' exists as a directory and is populated
-        if not os.path.isdir(f'{embed_path}/{model_name}/') or  len(os.listdir(f'{embed_path}/{model_name}/')) == 0:        
+        if not os.path.isdir(f'{self.embed_path}/{self.model_name}/') or  len(os.listdir(f'{self.embed_path}/{self.model_name}/')) == 0:        
             os.system(f'python3 fasta_preprocess.py --model_name [{model_name}]')
 
     def __getitem__(self, idx):
