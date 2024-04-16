@@ -1,5 +1,5 @@
 import torch
-import pytorch_lightning as pl
+import lightning.torch as pl
 from transformers import T5Config, T5ForConditionalGeneration, get_linear_schedule_with_warmup
 from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrapperDataset
 from constants import tokenization
@@ -210,12 +210,11 @@ def main(cfg: DictConfig) -> None:
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", filename=f'{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True) 
     acc_callback = ModelCheckpoint(monitor="val_acc", filename=f'acc-{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True) 
     lr_monitor = LearningRateMonitor(logging_interval='step')
-    BSFinder = pl.callbacks.BatchSizeFinder()
     trainer = pl.Trainer(
         devices=-1, 
         accelerator="gpu", 
         logger=wandb_logger,
-        callbacks=[checkpoint_callback, lr_monitor, acc_callback, BSFinder],
+        callbacks=[checkpoint_callback, lr_monitor, acc_callback],
 
         default_root_dir=cfg.io.checkpoints,
         accumulate_grad_batches=int(cfg.model.grad_batches),
