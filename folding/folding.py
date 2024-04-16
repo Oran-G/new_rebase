@@ -356,7 +356,7 @@ def main(cfg: DictConfig) -> None:
     BSFinder = pl.callbacks.BatchSizeFinder()
 
     print('tune: ')
-    '''
+
     batch_trainer = pl.Trainer(
         devices=1, 
         accelerator="gpu",
@@ -372,7 +372,7 @@ def main(cfg: DictConfig) -> None:
     batch_trainer.fit(model)
     print(model.batch_size)
 
-    '''
+
 
     trainer = pl.Trainer(
         devices=-1, 
@@ -384,7 +384,7 @@ def main(cfg: DictConfig) -> None:
             acc_callback, 
             ],
         default_root_dir=cfg.io.checkpoints,
-        accumulate_grad_batches=max(1, int(64/model.batch_size)),
+        accumulate_grad_batches=max(1, int(128/model.batch_size)),
         precision=cfg.model.precision,
         strategy=pl.strategies.DDPStrategy(find_unused_parameters=True),
         log_every_n_steps=5,

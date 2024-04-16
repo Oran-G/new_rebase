@@ -1,6 +1,6 @@
 # d_ff: 128
 # d_model: 768
-d_ff: 64
+d_ff: 128
 d_model: 512
 batch_size: 512
 lr: 1e-3
