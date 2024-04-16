@@ -81,27 +81,12 @@ class RebaseT5(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         if self.global_step  != 0 and self.global_step % 4 == 0:
-            #print('lr')
             self.lr_schedulers().step()
         label_mask = (batch['bind'] == self.dictionary.pad())
         batch['bind'][label_mask] = -100
         
 
-        # import pdb; pdb.set_trace()
-        # 1 for tokens that are not masked; 0 for tokens that are masked
         mask = (batch['embedding'][:, :, 0] != self.dictionary.pad()).int()
-
-
-        # load ESM-1b in __init__(...)
-        # convert sequence into the ESM-1b vocabulary
-        # # # load up ESM-1b alphabet; convert sequences using our dictionary and ESM-1b dictionary, check that you get same ouputs
-        # # # if not, write a conversion function convert(t: torch.tensor) -> torch.tensor
-        # take the converted sequence, pass it through ESM-1b, get hidden representations from layer 33
-        # these representations will be of shape torch.tensor [batch, seq_len, 768]
-        # make sure you don't take gradients through ESM-1b; do torch.no_grad()
-        # alternatively, you can do this in __init__: [for parameter in self.esm1b_model.paramters(): parmater.requires_grad=False]
-        # pass that ESM-1b hidden states into self.model(..., encoder_outputs=...)
-        
         output = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'].long())
 
         
@@ -123,6 +108,7 @@ class RebaseT5(pl.LightningModule):
         # import pdb; pdb.set_trace()
         # 1 for tokens that are not masked; 0 for tokens that are masked
         mask = (batch['seq'] != self.dictionary.pad()).int()
+        import pdb; pdb.set_trace()
         with torch.no_grad():
             output = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'].long())
         self.log('val_loss', float(output.loss), on_step=True, on_epoch=True, prog_bar=False, logger=True)
@@ -187,7 +173,6 @@ class RebaseT5(pl.LightningModule):
 
 @hydra.main(config_path='/vast/og2114/new_rebase/configs', config_name='defaults')
 def main(cfg: DictConfig) -> None:
-    print(OmegaConf.to_yaml(cfg))
     os.system('export TORCH_HOME=/vast/og2114/torch_home')
     model = RebaseT5(cfg)
     max1 = 0
