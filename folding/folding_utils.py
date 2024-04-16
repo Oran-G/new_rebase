@@ -326,6 +326,7 @@ class EncoderDataset(Dataset):
                         'seq_enc': embeddings[i, :batch['lens'][i], :].to(torch.device('cpu')), 
                         'cluster': batch['cluster'][i]
                     })
+                torch.cuda.empty_cache()
                 #augment self.data from form list[dict[..., cluster]] to list[list`dict[..., cluster]]], where the inner list is a list of dicts with the same cluster
                 
             #save self.data to path and create a function to load it back to self.data
