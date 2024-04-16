@@ -319,7 +319,6 @@ class EncoderDataset(Dataset):
                 except:
                     print(steps)
                     print(batch['coords'].shape)
-                    print(torch.cuda.memory_summary())
                     torch.cuda.empty_cache()
                     print(torch.cuda.memory_summary())
                     steps = 0
