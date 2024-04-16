@@ -42,6 +42,7 @@ class RebaseT5(pl.LightningModule):
             pass
         
         self.batch_size = self.hparams.model.batch_size
+        print('actual batch size`', self.batch_size)
         # print("Argument hparams: ", self.hparams)
         # print('batch size', self.hparams.model.batch_size)
         
