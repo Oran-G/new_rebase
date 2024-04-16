@@ -115,7 +115,7 @@ class RebaseT5(pl.LightningModule):
         self.log('val_acc',float(accuracy(output['logits'].argmax(-1), batch['bind'].long(), (batch['bind'] != self.dictionary.pad()).int())), on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True, batch_size=self.batch_size)
         return {
             'loss': output.loss,
-            'batch_size': batch['seq'].size(0)s
+            'batch_size': batch['seq'].size(0)
         }
     
     def train_dataloader(self):
