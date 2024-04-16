@@ -178,7 +178,7 @@ class RebaseT5(pl.LightningModule):
         
 
         encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=8, device=self.device, path=self.hparams.io.train_embedded, cluster=False)
-        dataloader = DataLoader(encoder_dataset, batch_size=2, shuffle=False, num_workers=11, collate_fn=encoder_dataset.collater)
+        dataloader = DataLoader(encoder_dataset, batch_size=8, shuffle=False, num_workers=11, collate_fn=encoder_dataset.collater)
         print('train dataset length:', len(encoder_dataset))        
         return dataloader 
     def val_dataloader(self):
