@@ -283,7 +283,7 @@ class EncoderDataset(Dataset):
 
         super().__init__()
         self.dataset = dataset
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = device
         self.batch_size = batch_size
         self.cluster = cluster
         self.dictionary = self.dataset.dictionary
