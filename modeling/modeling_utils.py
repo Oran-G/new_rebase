@@ -22,7 +22,7 @@ import torch
 
 import pandas as pd
 class CSVDataset(Dataset):
-    def __init__(self, csv_path, split, split_seed=42, supervised=True):
+    def __init__(self, csv_path, split, clust=True, split_seed=42, supervised=True):
         super().__init__()
         self.df = pd.read_csv(csv_path)
         # print(self.df)
@@ -33,16 +33,23 @@ class CSVDataset(Dataset):
         # quit()
         def cat(x):
             return (x[:1023] if len(x) > 1024 else x)
-        self.df['seq'] = self.df['seq'].apply(cat)
+        # self.df['seq'] = self.df['seq'].apply(cat)
         self.data = self.split(split)[['id', 'seq', 'bind', 'cluster']].to_dict('records')
     
         self.data = [x for x in self.data if x not in self.data[16*711:16*714]]
-        self.data =self.data
+        for idx in range(len(self.data)):
+            self.data['embedding'] = torch.load(f'{self.embed_path}/{self.model_name}/{self.dataset[idx]["id"]}.pt').to(torch.device('cpu'))
+        self.clustered = clust
+        self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
     
     def __getitem__(self, idx):
+        if self.clustered:
+            return self.clustered_data[idx][random.randint(0, (len(self.clustered_data[idx])-1))]
         return self.data[idx]
     
     def __len__(self):
+        if self.clustered:
+            return len(self.clustered_data)
         return len(self.data)
     
     def split(self, split):
@@ -66,6 +73,7 @@ class EmbeddedFastaDatasetWrapper(BaseWrapperDataset):
         but won't have bos. Hence the defaults here.
         '''
         super().__init__(dataset)
+        self.dataset = dataset
         self.dictionary = dictionary
         self.apply_bos = apply_bos
         self.apply_eos = apply_eos
@@ -79,23 +87,27 @@ class EmbeddedFastaDatasetWrapper(BaseWrapperDataset):
         # desc, seq = self.dataset[idx]
         return {
             'id': self.dataset[idx]['id']
-            'seq': self.dictionary.encode_line(self.dataset[new_idx]['seq'].replace(' ', ''), line_tokenizer=list, append_eos=False, add_if_not_exist=False).long(),
-            'bind': self.dictionary.encode_line(self.dataset[new_idx]['bind'], line_tokenizer=list, append_eos=False, add_if_not_exist=False).long(),
-            'cluster': self.dataset[new_idx]['cluster'],
-            'embedding':torch.load(f'{self.embed_path}/{self.model_name}/{self.dataset[new_idx]["id"]}.pt')
+            'seq': self.dictionary.encode_line(self.dataset[idx]['seq'].replace(' ', ''), line_tokenizer=list, append_eos=False, add_if_not_exist=False).long(),
+            'bind': self.dictionary.encode_line(self.dataset[idx]['bind'], line_tokenizer=list, append_eos=False, add_if_not_exist=False).long(),
+            'cluster': self.dataset[idx]['cluster'],
+            'embedding': self.dataset[idx]['embedding'],
         }
     def __len__(self):
         return len(self.dataset)
     def collate_tensors(self, batch: List[torch.tensor]):
+
         batch_size = len(batch)
-        max_len = max(el.size(0) for el in batch)
+        beos = int(self.apply_bos) + int(self.apply_eos))
+        max_shape = [max(el.size(i) for el in batch)  for i in range(len(batch[0].shape))]
+        max_shape[0] = max_shape[0] + beos
         tokens = torch.empty(
             (
-                batch_size,
-                max_len + int(self.apply_bos) + int(self.apply_eos) # eos and bos
+                batch_size, 
+                *max_shape
             ),
-            dtype=torch.int64,
-        ).fill_(self.dictionary.pad())
+            dtype=torch.float,
+
+        ).fill_(self.dictionary.padding_idx)
 
         if self.apply_bos:
             tokens[:, 0] = self.dictionary.bos()
