@@ -10,8 +10,9 @@ lr_patience: 100
 scheduler: True
 gpu: -1
 max_epochs: -1
-precision: 16
+precision: 32
 seq_identity: .3
+sample_by_cluster: True
 name: esm2_t33_650M_UR50D
 #size -> 1.6 million params
 #480 iters on RTX8000 at fp32

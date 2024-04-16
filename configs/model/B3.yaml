@@ -10,7 +10,8 @@ lr_patience: 100
 scheduler: True
 gpu: -1
 max_epochs: -1
-precision: 16
+precision: 32
+sample_by_cluster: True
 seq_identity: .3
 name: esm2_t36_3B_UR50D
 #size -> 1.6 million params
