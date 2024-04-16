@@ -17,7 +17,7 @@ from pytorch_lightning.loggers import WandbLogger
 
 from pandas import DataFrame as df
 import pandas as pd
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
+from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 import torch
 
 import pandas as pd
