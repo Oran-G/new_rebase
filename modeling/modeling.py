@@ -46,7 +46,7 @@ class RebaseT5(pl.LightningModule):
         self.batch_size = self.hparams.model.batch_size
         
 
-        self.dictionary = InlineDictionary.from_list(
+        self.dictionary = modeling_utils.InlineDictionary.from_list(
             tokenization['toks']
         )
         self.cfg = cfg
