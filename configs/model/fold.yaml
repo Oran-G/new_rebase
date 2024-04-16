@@ -1,7 +1,7 @@
 # d_ff: 128
 # d_model: 768
 d_ff: 128
-d_kv: 64
+d_kv: 64s
 d_model: 512
 batch_size: 128
 lr: 1e-3
@@ -10,7 +10,6 @@ lr_patience: 100
 scheduler: True
 gpu: -1
 max_epochs: -1
-name: small
 precision: 32
 seq_identity: .3
 lrpower: 2

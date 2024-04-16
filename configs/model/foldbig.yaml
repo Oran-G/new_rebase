@@ -9,8 +9,7 @@ layers: 6
 lr_patience: 100
 scheduler: True
 gpu: -1
-max_epochs: -1
-name: small
+max_epochs: -1s
 precision: 32
 seq_identity: .3
 lrpower: 2

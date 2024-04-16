@@ -10,7 +10,6 @@ lr_patience: 100
 scheduler: True
 gpu: -1
 max_epochs: -1
-name: small
 precision: 32
 seq_identity: .3
 lrpower: 2
