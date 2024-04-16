@@ -40,8 +40,7 @@ class CSVDataset(Dataset):
     
         self.data = [x for x in self.data if x not in self.data[16*711:16*714]]
         for idx in range(len(self.data)):
-            import pdb; pdb.set_trace()
-            self.data['embedding'] = torch.load(f'{self.embed_path}/{self.model_name}/{self.data[idx]["id"]}.pt').to(torch.device('cpu'))
+            self.data['embedding'] = torch.load(f'{self.embed_path}/{self.model_name}/{self.data[idx]["id"]}.pt')['representations'][30].to(torch.device('cpu'))
         self.clustered = clust
         self.clustered_data = [list(group) for key, group in itertools.groupby(self.data, lambda x: x['cluster'])]
     
