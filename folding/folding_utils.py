@@ -54,7 +54,7 @@ class CSVDataset(Dataset):
         
         spl = self.split(split)
         print("pre filter",len(spl))
-        spl = spl[spl['id'].apply(alpha) ==True ]
+        # spl = spl[spl['id'].apply(alpha) ==True ]
         print("post filter",len(spl))
         self.data = spl[['seq','bind', 'id', 'cluster']].to_dict('records')
         print(len(self.data))
