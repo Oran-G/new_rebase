@@ -89,7 +89,7 @@ class RebaseT5(pl.LightningModule):
 
         # import pdb; pdb.set_trace()
         # 1 for tokens that are not masked; 0 for tokens that are masked
-        mask = (batch['seq'] != self.dictionary.pad()).int()
+        mask = (batch['embedding'][:, :, 0] != self.dictionary.pad()).int()
 
 
         # load ESM-1b in __init__(...)
