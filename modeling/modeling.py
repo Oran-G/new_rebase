@@ -115,12 +115,12 @@ class RebaseT5(pl.LightningModule):
         self.log('val_acc',float(accuracy(output['logits'].argmax(-1), batch['bind'].long(), (batch['bind'] != self.dictionary.pad()).int())), on_step=True, on_epoch=True, prog_bar=False, logger=True, sync_dist=True, batch_size=self.batch_size)
         return {
             'loss': output.loss,
-            'batch_size': batch['seq'].size(0)
+            'batch_size': batch['seq'].size(0)s
         }
     
     def train_dataloader(self):
         dataset =  modeling_utils.EmbeddedFastaDatasetWrapper(
-            modeling_utils.CSVDataset(self.cfg.io.final, 'train', self.cfg.model.name, self.cfg.io.embeddings_store_dir),
+            modeling_utils.CSVDataset(self.cfg.io.final, 'train', self.cfg.model.name, self.cfg.io.embeddings_store_dir, clust=self.model.sample_by_cluster),
             self.dictionary,
             self.cfg.model.name,
             self.cfg.io.embeddings_store_dir,
@@ -128,12 +128,12 @@ class RebaseT5(pl.LightningModule):
             apply_bos=False,
         )
 
-        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=4, collate_fn=dataset.collater)
+        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=1, collate_fn=dataset.collater)
 
         return dataloader
     def val_dataloader(self):
         dataset = modeling_utils.EmbeddedFastaDatasetWrapper(
-            modeling_utils.CSVDataset(self.cfg.io.final, 'val', self.cfg.model.name, self.cfg.io.embeddings_store_dir),
+            modeling_utils.CSVDataset(self.cfg.io.final, 'val', self.cfg.model.name, self.cfg.io.embeddings_store_dir, clust=self.model.sample_by_clusters),
             self.dictionary,
             self.cfg.model.name,
             self.cfg.io.embeddings_store_dir,
@@ -141,7 +141,7 @@ class RebaseT5(pl.LightningModule):
             apply_bos=False,
         )
 
-        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=4, collate_fn=dataset.collater)
+        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=dataset.collater)
 
         return dataloader 
 
