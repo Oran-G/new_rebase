@@ -314,7 +314,7 @@ class EncoderDataset(Dataset):
                 try:
                     encoder_out = self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False)
                 except:
-                    import pdb; pdb.set_trace()
+                    print(batch['coords'].shape)
                 # remove beginning and end (bos and eos tokens)
                 embeddings = encoder_out['encoder_out'][0].transpose(0, 1)[:, 1:-1, :]
                 #import pdb; pdb.set_trace()
