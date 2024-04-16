@@ -3,7 +3,7 @@
 d_ff: 512
 d_kv: 128
 d_model: 512
-batch_size: 8
+batch_size: 32
 lr: 1e-3
 layers: 6
 lr_patience: 100
