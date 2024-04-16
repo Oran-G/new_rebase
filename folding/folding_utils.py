@@ -27,6 +27,7 @@ import random
 import torch
 import pickle
 import itertools
+import tqdm
 class CSVDataset(Dataset):
     def __init__(self, csv_path, split, split_seed=42, supervised=True, plddt=85, clust=False):
         super().__init__()
@@ -308,7 +309,7 @@ class EncoderDataset(Dataset):
             #self.ifmodel = enable_cpu_offloading(self.ifmodel)
             print(len(self.dataset))
             steps = 0
-            for step, batch in enumerate(self.dataloader):
+            for step, batch in enumerate(tqdm.tqdm(self.dataloader)):
                 torch.cuda.empty_cache()
                 #predict the encoder output using self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False). 
                 # if GPU runs out of memory, use sharding
