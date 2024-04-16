@@ -19,7 +19,7 @@ from pandas import DataFrame as df
 import pandas as pd
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import torch
-
+import itertools
 import pandas as pd
 class CSVDataset(Dataset):
     def __init__(self, csv_path, split, model, embed_path, clust=True, split_seed=42, supervised=True):
