@@ -2,7 +2,7 @@ import torch
 import pytorch_lightning as pl
 from transformers import T5Config, T5ForConditionalGeneration, get_linear_schedule_with_warmup
 from fairseq.data import FastaDataset, EncodedFastaDataset, Dictionary, BaseWrapperDataset
-from constants import tokenization, neucleotides
+from ..constants import tokenization, neucleotides
 from torch.utils.data import DataLoader, Dataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -218,7 +218,7 @@ def main(cfg: DictConfig) -> None:
         default_root_dir=cfg.io.checkpoints,
         accumulate_grad_batches=int(cfg.model.grad_batches),
         precision=cfg.model.precision,
-        strategy='ddp',
+        strategys='ddp',
         log_every_n_steps=5,
 
         )
