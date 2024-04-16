@@ -110,7 +110,7 @@ class EmbeddedFastaDatasetWrapper(BaseWrapperDataset):
             ),
             dtype=torch.float,
 
-        ).fill_(self.dictionary.padding_idx)
+        ).fill_(self.dictionary.pad())
 
         if self.apply_bos:
             tokens[:, 0] = self.dictionary.bos()
