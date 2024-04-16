@@ -308,6 +308,7 @@ class EncoderDataset(Dataset):
             #self.ifmodel = enable_cpu_offloading(self.ifmodel)
             print(len(self.dataset))
             for step, batch in enumerate(self.dataloader):
+                torch.cuda.empty_cache()
                 #predict the encoder output using self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False). 
                 # if GPU runs out of memory, use sharding
                 
