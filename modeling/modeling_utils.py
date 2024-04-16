@@ -22,8 +22,10 @@ import torch
 
 import pandas as pd
 class CSVDataset(Dataset):
-    def __init__(self, csv_path, split, clust=True, split_seed=42, supervised=True):
+    def __init__(self, csv_path, split, model, embed_path, clust=True, split_seed=42, supervised=True):
         super().__init__()
+        self.model_name = model
+        self.embed_path = embed_path
         self.df = pd.read_csv(csv_path)
         # print(self.df)
         # print(self.df['seq'][0])
