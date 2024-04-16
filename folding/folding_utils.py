@@ -291,6 +291,7 @@ class EncoderDataset(Dataset):
         
         #check if file exists at path, if so load it, if not create it
         if os.path.isfile(path):
+            print(f'loading embeddings from {path}')
             with open(path, 'rb') as f:
                 self.data = pickle.load(f)
             for i in range(len(self.data)):
