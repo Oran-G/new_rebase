@@ -140,7 +140,7 @@ class RebaseT5(pl.LightningModule):
         dataset =  modeling_utils.EmbeddedFastaDatasetWrapper(
             modeling_utils.CSVDataset(self.cfg.io.final, 'train'),
             self.dictionary,
-            self.cfg.esm.path,
+            self.cfg.model.name,
             self.cfg.io.embeddings_store_dir,
             apply_eos=True,
             apply_bos=False,
@@ -153,7 +153,7 @@ class RebaseT5(pl.LightningModule):
         dataset = modeling_utils.EmbeddedFastaDatasetWrapper(
             modeling_utils.CSVDataset(self.cfg.io.final, 'val'),
             self.dictionary,
-            self.cfg.esm.path,
+            self.cfg.model.name,
             self.cfg.io.embeddings_store_dir,
             apply_eos=True,
             apply_bos=False,
