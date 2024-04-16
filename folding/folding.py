@@ -357,19 +357,19 @@ def main(cfg: DictConfig) -> None:
 
     print('tune: ')
 
-    batch_trainer = pl.Trainer(
-        devices=1, 
-        accelerator="gpu",
-        logger=wandb_logger,
-        callbacks=[
-            BSFinder,
-            ],
-        precision=cfg.model.precision,
+    # batch_trainer = pl.Trainer(
+    #     devices=1, 
+    #     accelerator="gpu",
+    #     logger=wandb_logger,
+    #     callbacks=[
+    #         BSFinder,
+    #         ],
+    #     precision=cfg.model.precision,
         
-        fast_dev_run=True,
-        gradient_clip_val=0.3,
-        )
-    batch_trainer.fit(model)
+    #     fast_dev_run=True,
+    #     gradient_clip_val=0.3,
+    #     )
+    # batch_trainer.fit(model)
     print(model.batch_size)
 
 
