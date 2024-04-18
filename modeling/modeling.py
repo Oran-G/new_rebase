@@ -160,8 +160,8 @@ class RebaseT5(pl.LightningModule):
                 'optimizer': opt,
                 'lr_scheduler': get_linear_schedule_with_warmup(
                     optimizer=opt,
-                    num_training_steps=40000,
-                    num_warmup_steps=1000,
+                    num_training_steps=400000,
+                    num_warmup_steps=4000,
                 )
             }
         else:

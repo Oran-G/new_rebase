@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=10
-#SBATCH --time=48:00:00
+#SBATCH --time=24:00:00
 #SBATCH --mem=120GB
 #SBATCH --gres=gpu:4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=og2114@nyu.edu
 #SBATCH --output=/vast/og2114/output_home/logs/slurm_$SLURM_JOB_ID/job.out
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4ss
 #SBATCH --job-name='Folding trainer huge model training'
 #SBATCH --signal=SIGUSR1@90
 module purge
