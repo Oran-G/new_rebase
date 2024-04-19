@@ -80,6 +80,7 @@ class RebaseT5(pl.LightningModule):
 
 
     def training_step(self, batch, batch_idx):
+        torch.cuda.empty_cache()
         if self.global_step  != 0 and self.global_step % 4 == 0:
             self.lr_schedulers().step()
         label_mask = (batch['bind'] == self.dictionary.pad())
@@ -101,6 +102,7 @@ class RebaseT5(pl.LightningModule):
         }
     
     def validation_step(self, batch, batch_idx):
+        torch.cuda.empty_cache()
         label_mask = (batch['bind'] == self.dictionary.pad())
         batch['bind'][label_mask] = -100
         
@@ -166,7 +168,47 @@ class RebaseT5(pl.LightningModule):
             }
         else:
             return opt
+    
+        # def test_step(self, batch, batch_idx):
+
+        
+        #     start_time = time.time()
+
+        #     torch.cuda.empty_cache()
+        #     label_mask = (batch['bind'] == self.dictionary.pad())
+        #     batch['bind'][label_mask] = -100
             
+
+        #     # import pdb; pdb.set_trace()
+        #     # 1 for tokens that are not masked; 0 for tokens that are masked
+        #     mask = (batch['embedding'][:, :, 0] != self.dictionary.pad()).int()
+          
+        #     pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'].long())
+        #     generated = self.model.generate(input_ids=None, encoder_outputs=[batch['embedding']], attention_mask=mask)
+        #     '''
+        #     record validation data into val_data
+        #     form:  {
+        #         seq: protein sequence
+        #         bind: bind site ground truth
+        #         predicted: the predicted bind site
+        #     }
+        #     '''
+        #     ''' not working - to be fixed later'''
+        #     for i in range(pred[1].shape[0]):
+        #         try:
+
+        #             lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+        #             lastidx_generation = -1 if len((generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+        #             self.test_data.append({
+        #                 'id': batch['id'][i],
+        #                 'seq': self.decode(batch['seq'][i].tolist()).split("<eos>")[0],
+        #                 'bind': self.decode(batch['bind'][i].tolist()[:batch['bind'][i].tolist().index(2)]),
+        #                 'predicted': self.decode(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0]),
+        #                 'predicted_logits': nn.functional.softmax(pred[1], dim=-1)[:lastidx],
+        #                 'generated': self.decode(nn.functional.softmax(generated[1], dim=-1).argmax(-1).tolist()[:lastidx_generation][0]),
+        #                 'generated_logits': nn.functional.softmax(generated[1], dim=-1)[:lastidx_generation],
+        #                 'predict_loss': loss.item(),
+        #             })
             
 
     

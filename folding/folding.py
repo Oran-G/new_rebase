@@ -81,8 +81,9 @@ class RebaseT5(pl.LightningModule):
         '''
         used to record validation data for logging
         '''
-        self.val_data = []
+        self.test_data = []
         print('initialized')
+        self.test_k =
         
         
 
@@ -116,7 +117,8 @@ class RebaseT5(pl.LightningModule):
         label[label==self.ifalphabet.padding_idx] = -100
 
         # import pdb; pdb.set_trace()
-        pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label.long())
+        mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
+        pred = self.model(encoder_outputs=[batch['seq_enc']], attention_mask=mask, labels=label.long())
 
         
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
@@ -144,7 +146,9 @@ class RebaseT5(pl.LightningModule):
         label = batch['bind']
         label[label==self.ifalphabet.padding_idx] = -100
         # import pdb; pdb.set_trace()
-        pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label.long())
+        mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
+        with torch.no_grad():
+            pred = self.model(encoder_outputs=[batch['seq_enc']], attention_mask=mask, labels=label.long())
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'].long())
         
@@ -270,43 +274,48 @@ class RebaseT5(pl.LightningModule):
 
 
 
-    def test_step(self, batch, batch_idx):
+    # def test_step(self, batch, batch_idx):
 
         
-        start_time = time.time()
+    #     start_time = time.time()
 
-        torch.cuda.empty_cache()
+    #     torch.cuda.empty_cache()
         
-        label = batch['bind']
-        label[label==self.ifalphabet.padding_idx] = -100
-        try:
-            pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
-        except RuntimeError:
-            print(token_representations['encoder_out'], batch, batch_idx)
-        batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
-        loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
-        '''
-        record validation data into val_data
-        form:  {
-            seq: protein sequence
-            bind: bind site ground truth
-            predicted: the predicted bind site
-        }
-        '''
-        ''' not working - to be fixed later'''
-        for i in range(pred[1].shape[0]):
-            try:
+    #     label = batch['bind']
+    #     label[label==self.ifalphabet.padding_idx] = -100
 
-                lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-                self.val_data.append({
-                    'seq': self.decode(batch['seq'][i].tolist()).split("<eos>")[0],
-                    'bind': self.decode(batch['bind'][i].tolist()[:batch['bind'][i].tolist().index(2)]),
-                    'predicted': self.decode(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0])
-                })
+    #     pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
+    #     generated = self.model.generate(input_ids=None, encoder_outputs=encoder_outputs)
+    #     batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
+    #     loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
+    #     '''
+    #     record validation data into val_data
+    #     form:  {
+    #         seq: protein sequence
+    #         bind: bind site ground truth
+    #         predicted: the predicted bind site
+    #     }
+    #     '''
+    #     ''' not working - to be fixed later'''
+    #     for i in range(pred[1].shape[0]):
+    #         try:
+
+    #             lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+    #             lastidx_generation = -1 if len((generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+    #             self.test_data.append({
+    #                 'id': batch['id'][i],
+    #                 'seq': self.decode(batch['seq'][i].tolist()).split("<eos>")[0],
+    #                 'bind': self.decode(batch['bind'][i].tolist()[:batch['bind'][i].tolist().index(2)]),
+    #                 'predicted': self.decode(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0]),
+    #                 'predicted_logits': nn.functional.softmax(pred[1], dim=-1)[:lastidx],
+    #                 'generated': self.decode(nn.functional.softmax(generated[1], dim=-1).argmax(-1).tolist()[:lastidx_generation][0]),
+    #                 'generated_logits': nn.functional.softmax(generated[1], dim=-1)[:lastidx_generation],
+    #                 'predict_loss': loss.item(),
+    #             })
                 
-            except IndexError:
-                print('Index Error')
-                import pdb; pdb.set_trace()
+    #         except IndexError:
+    #             print('Index Error')
+    #             import pdb; pdb.set_trace()
 
 
 

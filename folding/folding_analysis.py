@@ -1,6 +1,8 @@
 import pandas as pd
 import pickle
 from typing import List
+import psa
+#pip install pairwise-sequence-alignment
 def analyze_data(path):
     # Read the CSV file
     data = pd.read_csv(path)
@@ -34,6 +36,7 @@ class DataAnalyzer:
                 self.combined.loc[self.combined['id'] == row['id'], 'bind'] = row['seq_greedy']
             with open(combined_path, 'wb') as f:
                 pickle.dump({'labeled': self.labeled, 'unlabeled': self.unlabeled, 'combined': self.combined}, f)
+        self.unlabeled_labeled_similarity = None
     def homology_search(self, id):
         #return all proteins in self.data with 'test' in the split, and with the same cluster as the protein with the given id. also add a row to the returned dataframe that mentions if the protein has the same bind site as the protein with the given id
         cluster = self.combined[self.combined['id'] == id]['cluster'].values[0]
@@ -77,4 +80,33 @@ class DataAnalyzer:
         percentage = (count / len(self.unlabeled)) * 100
         
         return percentage
+    def topk_similarity(self, k: int):
+        # Calculate the sequence similarity between test proteins and unlabeled proteins
+        if self.unlabeled_labeled_similarity is None:
+            similarity_scores = []
+            for unlabeled_id, unlabeled_row in self.unlabeled.iterrows():
+            
+                test_cluster = test_row['cluster']
+                test_bind = test_row['bind']
+                
+                # Call homology_search for each unlabeled protein in the same cluster
+                test_proteins = self.homology_search(test_id)
+                
+                
+                for test_id, test_row in test_proteins.iterrows():
+                    similarity = calculate_similarity(test_row['seq'], unlabeled_row['seq'])
+                    similarity_scores.append({'test_id': test_row['id'], 'unlabeled_id': unlabeled_row['id'], 'similarity': similarity})
+            
+            # Sort the similarity scores in descending order
+            similarity_scores.sort(key=lambda x: x['similarity'], reverse=True)
+            
+            # Return the top k similarity scores
+            self.unlabeled_labeled_similarity = similarity_scores
+            return similarity_scores[:k]
+        else:
+            return self.unlabeled_labeled_similarity[:k]
+    def calculate_similarity(self, seq1: str, seq2: str): -> float:
+        # Calculate the similarity between two sequences
+        return psa.needle(moltype='prot', qseq=seq1, sseqs=seq2).score / 100
+        
     
