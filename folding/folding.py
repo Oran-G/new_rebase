@@ -316,15 +316,21 @@ class RebaseT5(pl.LightningModule):
 def main(cfg: DictConfig) -> None:
     os.system('export TORCH_HOME=/vast/og2114/torch_home')
     # print(OmegaConf.to_yaml(cfg))
-    
-    model = RebaseT5(cfg)
+    try:
+        if cfg.model.checkpint_path:
+            print('checkpoint path:', cfg.model.checkpoint_path)
+            model = RebaseT5.load_from_checkpoint(cfg.model.checkpoint_path)
+        else:
+            model = RebaseT5(cfg)
+    except:
+        model = RebaseT5(cfg)
     gpu = cfg.model.gpu
     cfg = model.hparams
     cfg.model.gpu = gpu
     
-    wandb.init(settings=wandb.Settings(start_method='thread', code_dir="."))
+    wandb.init(settings=wandb.Settings(start_method='thread', code_dir="."), reinit=True)
     wandb.save(os.path.abspath(__file__))
-    wandb_logger = WandbLogger(project="Focus",save_dir=cfg.io.wandb_dir)
+    wandb_logger = WandbLogger(project="Folding",save_dir=cfg.io.wandb_dir, name=f"{cfg.model.name}_slurm_{os.environ['SLURM_JOB_ID']}")
     wandb_logger.watch(model)
     checkpoint_callback = ModelCheckpoint(monitor="val_loss_epoch", filename=f'{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True,save_top_k=5) 
     acc_callback = ModelCheckpoint(monitor="val_acc_epoch", filename=f'acc-{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True, save_top_k=5) 

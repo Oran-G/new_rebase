@@ -8,7 +8,7 @@
 #SBATCH --mail-user=og2114@nyu.edu
 #SBATCH --output=/vast/og2114/output_home/logs/slurm_$SLURM_JOB_ID/job.out
 #SBATCH --ntasks-per-node=1
-#SBATCH --job-name='sequence based 3 billion parameter encoder ssmodel training'
+#SBATCH --job-name='sequence based 3 billion parameter encoder smodel training'
 #SBATCH --signal=SIGUSR1@90
 module purge
 mkdir -p /vast/og2114/output_home/logs/slurm_$SLURM_JOB_ID

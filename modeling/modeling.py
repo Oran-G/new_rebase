@@ -184,7 +184,7 @@ def main(cfg: DictConfig) -> None:
         os.mkdir(f"/vast/og2114/rebase/runs/slurm_{str(os.environ.get('SLURM_JOB_ID'))}/training_outputs")
     except: 
         pass
-    wandb_logger = WandbLogger(project="Focus",save_dir=cfg.io.wandb_dir, name=f"slurm_{os.environ['SLURM_JOB_ID']}")
+    wandb_logger = WandbLogger(project="Modeling",save_dir=cfg.io.wandb_dir, name=f"{cfg.model.name}_slurm_{os.environ['SLURM_JOB_ID']}", reinit=True)
     wandb_logger.experiment.config.update(dict(cfg.model))
     wandb.save(os.path.abspath(__file__))
     checkpoint_callback = ModelCheckpoint(monitor="val_loss", filename=f'{cfg.model.name}_dff-{cfg.model.d_ff}_dmodel-{cfg.model.d_model}_lr-{cfg.model.lr}_batch-{cfg.model.batch_size}', verbose=True) 
