@@ -224,7 +224,7 @@ class RebaseT5(pl.LightningModule):
                 'optimizer': opt,
                 'lr_scheduler': get_polynomial_decay_schedule_with_warmup(
                     optimizer=opt,
-                    num_training_steps=400000,
+                    num_training_steps=500000,
                     num_warmup_steps=4000, #was 4000
                     power=self.hparams.model.lrpower,
                 )
