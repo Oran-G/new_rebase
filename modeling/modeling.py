@@ -174,7 +174,14 @@ class RebaseT5(pl.LightningModule):
 @hydra.main(config_path='/vast/og2114/new_rebase/configs', config_name='defaults')
 def main(cfg: DictConfig) -> None:
     os.system('export TORCH_HOME=/vast/og2114/torch_home')
-    model = RebaseT5(cfg)
+    try:
+        if cfg.model.checkpoint_path:
+            print('checkpoint path:', cfg.model.checkpoint_path)
+            model = RebaseT5.load_from_checkpoint(cfg.model.checkpoint_path)
+        else:
+            model = RebaseT5(cfg)
+    except:
+        model = RebaseT5(cfg)
     max1 = 0
     try:
         os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")

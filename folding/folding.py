@@ -224,7 +224,7 @@ class RebaseT5(pl.LightningModule):
                 'optimizer': opt,
                 'lr_scheduler': get_polynomial_decay_schedule_with_warmup(
                     optimizer=opt,
-                    num_training_steps=300000,
+                    num_training_steps=400000,
                     num_warmup_steps=4000, #was 4000
                     power=self.hparams.model.lrpower,
                 )
@@ -317,7 +317,7 @@ def main(cfg: DictConfig) -> None:
     os.system('export TORCH_HOME=/vast/og2114/torch_home')
     # print(OmegaConf.to_yaml(cfg))
     try:
-        if cfg.model.checkpint_path:
+        if cfg.model.checkpoint_path:
             print('checkpoint path:', cfg.model.checkpoint_path)
             model = RebaseT5.load_from_checkpoint(cfg.model.checkpoint_path)
         else:
