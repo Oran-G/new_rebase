@@ -26,7 +26,7 @@ import wandb
 import csv
 import random
 import folding_utils
-
+import pickle
 
 
 class RebaseT5(pl.LightningModule):
@@ -181,7 +181,7 @@ class RebaseT5(pl.LightningModule):
         )
         
 
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=8, device=self.device, path=self.hparams.io.train_embedded, cluster=False)
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=8, device=self.device, path=self.hparams.io.train_embedded, cluster=True)
         dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         print('train dataset length:', len(encoder_dataset))        
         return dataloader 
@@ -205,11 +205,34 @@ class RebaseT5(pl.LightningModule):
             apply_eos=True,
             apply_bos=False,
         )
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=8, device=self.device, path=self.hparams.io.val_embedded, cluster=False)
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=8, device=self.device, path=self.hparams.io.val_embedded, cluster=True)
         dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         print('val dataset length:', len(encoder_dataset))
         return dataloader 
-
+    def test_dataloader(self):
+        if str(self.hparams.model.seq_identity)== '0.9':
+            print(".9 seq")
+            cs = f'{self.hparams.io.final}-9'
+        elif str(self.hparams.model.seq_identity) == '0.7':
+            print('.7 seq')
+            cs = f'{self.hparams.io.final}-7'
+        else:
+            cs = self.hparams.io.final
+        
+        if self.hparams.model.dna_clust == True:
+            cs = self.hparams.io.dnafinal
+        print(self.hparams.model.seq_identity)
+        print(cs)
+        dataset = folding_utils.EncodedFastaDatasetWrapper(
+            folding_utils.CSVDataset(cs, 'test', clust=False),
+            self.ifalphabet,
+            apply_eos=True,
+            apply_bos=False,
+        )
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=8, device=self.device, path=self.hparams.io.test_embedded, cluster=False)
+        dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
+        print('test dataset length:', len(encoder_dataset))
+        return dataloader 
 
     def configure_optimizers(self):
         opt = torch.optim.AdamW([
@@ -274,48 +297,48 @@ class RebaseT5(pl.LightningModule):
 
 
 
-    # def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx):
 
         
-    #     start_time = time.time()
+        start_time = time.time()
 
-    #     torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
         
-    #     label = batch['bind']
-    #     label[label==self.ifalphabet.padding_idx] = -100
+        label = batch['bind']
+        label[label==self.ifalphabet.padding_idx] = -100
 
-    #     pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
-    #     generated = self.model.generate(input_ids=None, encoder_outputs=encoder_outputs)
-    #     batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
-    #     loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
-    #     '''
-    #     record validation data into val_data
-    #     form:  {
-    #         seq: protein sequence
-    #         bind: bind site ground truth
-    #         predicted: the predicted bind site
-    #     }
-    #     '''
-    #     ''' not working - to be fixed later'''
-    #     for i in range(pred[1].shape[0]):
-    #         try:
+        pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
+        generated = self.model.generate(input_ids=None, encoder_outputs=encoder_outputs)
+        batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
+        loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
+        '''
+        record validation data into val_data
+        form:  {
+            seq: protein sequence
+            bind: bind site ground truth
+            predicted: the predicted bind site
+        }
+        '''
+        ''' not working - to be fixed later'''
+        for i in range(pred[1].shape[0]):
+            try:
 
-    #             lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-    #             lastidx_generation = -1 if len((generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-    #             self.test_data.append({
-    #                 'id': batch['id'][i],
-    #                 'seq': self.decode(batch['seq'][i].tolist()).split("<eos>")[0],
-    #                 'bind': self.decode(batch['bind'][i].tolist()[:batch['bind'][i].tolist().index(2)]),
-    #                 'predicted': self.decode(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0]),
-    #                 'predicted_logits': nn.functional.softmax(pred[1], dim=-1)[:lastidx],
-    #                 'generated': self.decode(nn.functional.softmax(generated[1], dim=-1).argmax(-1).tolist()[:lastidx_generation][0]),
-    #                 'generated_logits': nn.functional.softmax(generated[1], dim=-1)[:lastidx_generation],
-    #                 'predict_loss': loss.item(),
-    #             })
+                lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+                lastidx_generation = -1 if len((generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+                self.test_data.append({
+                    'id': batch['id'][i],
+                    'seq': self.decode(batch['seq'][i].tolist()).split("<eos>")[0],
+                    'bind': self.decode(batch['bind'][i].tolist()[:batch['bind'][i].tolist().index(2)]),
+                    'predicted': self.decode(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0]),
+                    'predicted_logits': nn.functional.softmax(pred[1], dim=-1)[:lastidx],
+                    'generated': self.decode(nn.functional.softmax(generated[1], dim=-1).argmax(-1).tolist()[:lastidx_generation][0]),
+                    'generated_logits': nn.functional.softmax(generated[1], dim=-1)[:lastidx_generation],
+                    'predict_loss': loss.item(),
+                })
                 
-    #         except IndexError:
-    #             print('Index Error')
-    #             import pdb; pdb.set_trace()
+            except IndexError:
+                print('Index Error')
+                import pdb; pdb.set_trace()
 
 
 
@@ -324,15 +347,20 @@ class RebaseT5(pl.LightningModule):
 @hydra.main(config_path='../configs', config_name='defaults')
 def main(cfg: DictConfig) -> None:
     os.system('export TORCH_HOME=/vast/og2114/torch_home')
-    # print(OmegaConf.to_yaml(cfg))
     try:
+        #add model loading support
         if cfg.model.checkpoint_path:
             print('checkpoint path:', cfg.model.checkpoint_path)
             model = RebaseT5.load_from_checkpoint(cfg.model.checkpoint_path)
+            
         else:
             model = RebaseT5(cfg)
     except:
         model = RebaseT5(cfg)
+
+
+    except:
+        pass
     gpu = cfg.model.gpu
     cfg = model.hparams
     cfg.model.gpu = gpu
@@ -346,24 +374,6 @@ def main(cfg: DictConfig) -> None:
     swa_callback = pl.callbacks.StochasticWeightAveraging(swa_lrs=1e-2)
     lr_monitor = LearningRateMonitor(logging_interval='step')
     BSFinder = pl.callbacks.BatchSizeFinder()
-
-    print('tune: ')
-
-    # batch_trainer = pl.Trainer(
-    #     devices=1, 
-    #     accelerator="gpu",
-    #     logger=wandb_logger,
-    #     callbacks=[
-    #         BSFinder,
-    #         ],
-    #     precision=cfg.model.precision,
-        
-    #     fast_dev_run=True,
-    #     gradient_clip_val=0.3,
-    #     )
-    # batch_trainer.fit(model)
-    print(model.batch_size)
-
 
 
     trainer = pl.Trainer(
@@ -383,20 +393,30 @@ def main(cfg: DictConfig) -> None:
         max_epochs=-1,
         gradient_clip_val=0.3,
         )
-    print('ready to train!') 
+    
+    try:
+        #add in support for test-only mode
+        if cfg.model.checkpoint_path and cfg.model.test_only: 
+            print('test-only mode. running test')
+            model = model.to(torch.device("cuda:0"))
+            trainer.test(model, dataloaders=model.test_dataloader())
+            
+            pickle.dump(model.test_data, open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb"))
+            wandb.run.summary["test_data"] = wandb.Artifact("test_data", type="dataset")
+            wandb.run.summary["test_data"].add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", skip_cache=True)
+            wandb.run.log_artifact(wandb.run.summary["test_data"])
+            return
+    except:
+        pass
+    print('ready to train!')
     trainer.fit(model)
     model = model.to(torch.device("cuda:0"))
-    trainer.test(model, dataloaders=model.val_dataloader())
-    import csv
-    dictionaries=model.val_data
-    keys = dictionaries[0].keys()
-    
-    a_file = open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/final.csv", "w")
-    dict_writer = csv.DictWriter(a_file, keys)
-    dict_writer.writeheader()
-    dict_writer.writerows(dictionaries)
-    a_file.close()
-    
+    trainer.test(model, dataloaders=model.test_dataloader())
+    pickle.dump(model.test_data, open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb"))
+    wandb.run.summary["test_data"] = wandb.Artifact("test_data", type="dataset")
+    wandb.run.summary["test_data"].add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", skip_cache=True)
+    wandb.run.log_artifact(wandb.run.summary["test_data"])
+        
 
 if __name__ == '__main__':
     main()

@@ -51,6 +51,7 @@ class RebaseT5(pl.LightningModule):
             tokenization['toks']
         )
         self.cfg = cfg
+        self.hparams = cfg
 
         self.perplex = torch.nn.CrossEntropyLoss(reduction='none')
         
@@ -122,10 +123,10 @@ class RebaseT5(pl.LightningModule):
     
     def train_dataloader(self):
         dataset =  modeling_utils.EmbeddedFastaDatasetWrapper(
-            modeling_utils.CSVDataset(self.cfg.io.final, 'train', self.cfg.model.name, self.cfg.io.embeddings_store_dir, clust=self.cfg.model.sample_by_cluster),
+            modeling_utils.CSVDataset(self.hparams.io.final, 'train', self.hparams.model.name, self.hparams.io.embeddings_store_dir, clust=self.hparams.model.sample_by_cluster),
             self.dictionary,
-            self.cfg.model.name,
-            self.cfg.io.embeddings_store_dir,
+            self.hparams.model.name,
+            self.hparams.io.embeddings_store_dir,
             apply_eos=True,
             apply_bos=False,
         )
@@ -135,10 +136,23 @@ class RebaseT5(pl.LightningModule):
         return dataloader
     def val_dataloader(self):
         dataset = modeling_utils.EmbeddedFastaDatasetWrapper(
-            modeling_utils.CSVDataset(self.cfg.io.final, 'val', self.cfg.model.name, self.cfg.io.embeddings_store_dir, clust=self.cfg.model.sample_by_cluster),
+            modeling_utils.CSVDataset(self.hparams.io.final, 'val', self.hparams.model.name, self.hparams.io.embeddings_store_dir, clust=self.hparams.model.sample_by_cluster),
             self.dictionary,
-            self.cfg.model.name,
-            self.cfg.io.embeddings_store_dir,
+            self.hparams.model.name,
+            self.hparams.io.embeddings_store_dir,
+            apply_eos=True,
+            apply_bos=False,
+        )
+
+        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=dataset.collater)
+
+        return dataloader 
+    def test_dataloader(self):
+        dataset = modeling_utils.EmbeddedFastaDatasetWrapper(
+            modeling_utils.CSVDataset(self.hparams.io.final, 'test', self.hparams.model.name, self.hparams.io.embeddings_store_dir, clust=False),
+            self.dictionary,
+            self.hparams.model.name,
+            self.hparams.io.embeddings_store_dir,
             apply_eos=True,
             apply_bos=False,
         )
@@ -169,46 +183,46 @@ class RebaseT5(pl.LightningModule):
         else:
             return opt
     
-        # def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx):
 
+    
+        start_time = time.time()
+
+        torch.cuda.empty_cache()
+        label_mask = (batch['bind'] == self.dictionary.pad())
+        batch['bind'][label_mask] = -100
         
-        #     start_time = time.time()
 
-        #     torch.cuda.empty_cache()
-        #     label_mask = (batch['bind'] == self.dictionary.pad())
-        #     batch['bind'][label_mask] = -100
-            
+        # import pdb; pdb.set_trace()
+        # 1 for tokens that are not masked; 0 for tokens that are masked
+        mask = (batch['embedding'][:, :, 0] != self.dictionary.pad()).int()
+        
+        pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'].long())
+        generated = self.model.generate(input_ids=None, encoder_outputs=[batch['embedding']], attention_mask=mask)
+        '''
+        record validation data into val_data
+        form:  {
+            seq: protein sequence
+            bind: bind site ground truth
+            predicted: the predicted bind site
+        }
+        '''
+        ''' not working - to be fixed later'''
+        for i in range(pred[1].shape[0]):
+            try:
 
-        #     # import pdb; pdb.set_trace()
-        #     # 1 for tokens that are not masked; 0 for tokens that are masked
-        #     mask = (batch['embedding'][:, :, 0] != self.dictionary.pad()).int()
-          
-        #     pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'].long())
-        #     generated = self.model.generate(input_ids=None, encoder_outputs=[batch['embedding']], attention_mask=mask)
-        #     '''
-        #     record validation data into val_data
-        #     form:  {
-        #         seq: protein sequence
-        #         bind: bind site ground truth
-        #         predicted: the predicted bind site
-        #     }
-        #     '''
-        #     ''' not working - to be fixed later'''
-        #     for i in range(pred[1].shape[0]):
-        #         try:
-
-        #             lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-        #             lastidx_generation = -1 if len((generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-        #             self.test_data.append({
-        #                 'id': batch['id'][i],
-        #                 'seq': self.decode(batch['seq'][i].tolist()).split("<eos>")[0],
-        #                 'bind': self.decode(batch['bind'][i].tolist()[:batch['bind'][i].tolist().index(2)]),
-        #                 'predicted': self.decode(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0]),
-        #                 'predicted_logits': nn.functional.softmax(pred[1], dim=-1)[:lastidx],
-        #                 'generated': self.decode(nn.functional.softmax(generated[1], dim=-1).argmax(-1).tolist()[:lastidx_generation][0]),
-        #                 'generated_logits': nn.functional.softmax(generated[1], dim=-1)[:lastidx_generation],
-        #                 'predict_loss': loss.item(),
-        #             })
+                lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+                lastidx_generation = -1 if len((generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+                self.test_data.append({
+                    'id': batch['id'][i],
+                    'seq': self.dictionary.string(batch['seq'][i].tolist(), include_eos=True).split("<eos>")[0],
+                    'bind': self.dictionary.string(batch['bind'][i].tolist()[:batch['bind'][i].tolist().index(2)]),
+                    'predicted': self.dictionary.string(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0]),
+                    'predicted_logits': nn.functional.softmax(pred[1], dim=-1)[:lastidx],
+                    'generated': self.dictionary.string(nn.functional.softmax(generated[1], dim=-1).argmax(-1).tolist()[:lastidx_generation][0]),
+                    'generated_logits': nn.functional.softmax(generated[1], dim=-1)[:lastidx_generation],
+                    'predict_loss': loss.item(),
+                })
             
 
     
@@ -252,11 +266,31 @@ def main(cfg: DictConfig) -> None:
 
         )
     trainer.fit(model)
-    one = model.val_test()
-    print(one)
-    pred = pd.DataFrame(one)
-    print(pred)
-    pred.to_csv(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/final.csv")
-    
+
+        try:
+        #add in support for test-only mode
+            if cfg.model.checkpoint_path and cfg.model.test_only: 
+                print('test-only mode. running test')
+                model = model.to(torch.device("cuda:0"))
+                trainer.test(model, dataloaders=model.test_dataloader())
+                
+                pickle.dump(model.test_data, open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb"))
+                wandb.run.summary["test_data"] = wandb.Artifact("test_data", type="dataset")
+                wandb.run.summary["test_data"].add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", skip_cache=True)
+                wandb.run.log_artifact(wandb.run.summary["test_data"])
+                return
+    except:
+        pass
+    print('ready to train!')
+    trainer.fit(model)
+    model = model.to(torch.device("cuda:0"))
+    trainer.test(model, dataloaders=model.test_dataloader())
+    pickle.dump(model.test_data, open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb"))
+    wandb.run.summary["test_data"] = wandb.Artifact("test_data", type="dataset")
+    wandb.run.summary["test_data"].add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", skip_cache=True)
+    wandb.run.log_artifact(wandb.run.summary["test_data"])
+
+
+  
 if __name__ == '__main__':
     main()
