@@ -108,5 +108,23 @@ class DataAnalyzer:
     def calculate_similarity(self, seq1: str, seq2: str): -> float:
         # Calculate the similarity between two sequences
         return psa.needle(moltype='prot', qseq=seq1, sseqs=seq2).score / 100
+    def recall(self, targets: List[str], predictions: List[str]):
+        # Calculate the recall of the predictions
+        correct = 0
+        for target, prediction in zip(targets, predictions):
+            if target == prediction:
+                correct += 1
         
+        return correct / len(targets)
+    def precision(self, targets: List[str], predictions: List[str]):
+        # Calculate the neucleotide-wise precision of the predictions. 
+        #output the mean accuracy, standard deviation, and list of accuracies fro each target 
+        accuracies = []
+        for target, prediction in zip(targets, predictions):
+            correct = 0
+            for t, p in zip(target, prediction):
+                if t == p:
+                    correct += 1
+            accuracies.append(correct / len(target))
+        return np.mean(accuracies), np.std(accuracies), accuracies
     
