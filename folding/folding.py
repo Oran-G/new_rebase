@@ -305,7 +305,7 @@ class RebaseT5(pl.LightningModule):
             def __getitem__(self, key):
                 return self.last_hidden_state
             def __len__(self):
-                return 1
+                return 1ss
         start_time = time.time()
 
         torch.cuda.empty_cache()
@@ -316,7 +316,7 @@ class RebaseT5(pl.LightningModule):
         pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
         generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']))
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
-        loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
+        loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'].long())
         '''
         record validation data into val_data
         form:  {
