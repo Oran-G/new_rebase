@@ -147,8 +147,8 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
             'bind':torch.tensor( self.dictionary.encode(self.dataset[idx]['bind'])),
             'coords': coords,
             'cluster': self.dataset[idx]['cluster'],
-            'seq': torch.tensor(self.dictionary.encode(seq))
-            'id': self.dataset[idx]['id']
+            'seq': torch.tensor(self.dictionary.encode(seq)),
+            'id': self.dataset[idx]['id'],
         }
 
     def __len__(self):
@@ -247,8 +247,8 @@ class EncodedFastaDatasetWrapper(BaseWrapperDataset):
             'coord_pad': pre_proccessed_coords[4],
             'lens': [len(l) for l in select_by_key(batch, 'seq')],
             'bind_lens': [len(l) for l in select_by_key(batch, 'bind')], 
-            'cluster': select_by_key(batch, 'cluster')
-            'id': select_by_key(batch, 'id')
+            'cluster': select_by_key(batch, 'cluster'),
+            'id': select_by_key(batch, 'id'),
         }
         return post_proccessed
 
@@ -328,8 +328,8 @@ class EncoderDataset(Dataset):
                         'bind': batch['bind'][i][int(self.eos):batch['bind_lens'][i]+int(self.eos)],
                         'coords': batch['coords'][i][:batch['lens'][i]],
                         'seq_enc': embeddings[i, :batch['lens'][i], :].to(torch.device('cpu')), 
-                        'cluster': batch['cluster'][i]
-                        'id': batch['id'][i]
+                        'cluster': batch['cluster'][i],
+                        'id': batch['id'][i],
                     })
                 torch.cuda.empty_cache()
                 #augment self.data from form list[dict[..., cluster]] to list[list`dict[..., cluster]]], where the inner list is a list of dicts with the same cluster
@@ -401,7 +401,7 @@ class EncoderDataset(Dataset):
             'lens': [len(l) for l in select_by_key(batch, 'seq')],
             'bind_lens': [len(l) for l in select_by_key(batch, 'bind')], 
             'cluster': select_by_key(batch, 'cluster'),
-            'embedding': self.collate_tensors(select_by_key(batch, 'seq_enc')) #shape (B, l, emb)
+            'embedding': self.collate_tensors(select_by_key(batch, 'seq_enc')), #shape (B, l, emb)
             'id': select_by_key(batch, 'id')
         }
         return post_proccessed
