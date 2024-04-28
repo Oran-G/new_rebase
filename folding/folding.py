@@ -412,17 +412,17 @@ def main(cfg: DictConfig) -> None:
             wandb.run.log_artifact(wandb.run.summary["test_data"])
             return
     except:
-        pass
-    print('ready to train!')
-    trainer.fit(model)
-    model = model.to(torch.device("cuda:0"))
-    trainer.test(model, dataloaders=model.test_dataloader())
-    os.mknod(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl")
+        print('ready to train!')
+        trainer.fit(model)
+        model = model.to(torch.device("cuda:0"))
+        trainer.test(model, dataloaders=model.test_dataloader())
+        os.mknod(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl")
 
-    pickle.dump(model.test_data, open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb"))
-    wandb.run.summary["test_data"] = wandb.Artifact("test_data", type="dataset")
-    wandb.run.summary["test_data"].add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", skip_cache=True)
-    wandb.run.log_artifact(wandb.run.summary["test_data"])
+        pickle.dump(model.test_data, open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb"))
+        wandb.run.summary["test_data"] = wandb.Artifact("test_data", type="dataset")
+        wandb.run.summary["test_data"].add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", skip_cache=True)
+        wandb.run.log_artifact(wandb.run.summary["test_data"])
+        return
         
 
 if __name__ == '__main__':
