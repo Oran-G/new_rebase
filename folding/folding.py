@@ -329,9 +329,10 @@ class RebaseT5(pl.LightningModule):
        
         for i in range(pred[1].shape[0]):
             try:
-
+                
                 lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
                 lastidx_generation = -1 if len((generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+                import pdb; pdb.set_trace()
                 self.test_data.append({
                     'id': batch['id'][i],
                     'seq': self.decode(batch['seq'][i].tolist()).split("<eos>")[0],
