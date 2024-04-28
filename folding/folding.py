@@ -118,7 +118,7 @@ class RebaseT5(pl.LightningModule):
 
         # import pdb; pdb.set_trace()
         mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
-        pred = self.model(encoder_outputs=[batch['seq_enc']], attention_mask=mask, labels=label.long())
+        pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
 
         
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
@@ -148,7 +148,7 @@ class RebaseT5(pl.LightningModule):
         # import pdb; pdb.set_trace()
         mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
         with torch.no_grad():
-            pred = self.model(encoder_outputs=[batch['seq_enc']], attention_mask=mask, labels=label.long())
+            pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'].long())
         
@@ -306,8 +306,8 @@ class RebaseT5(pl.LightningModule):
         
         label = batch['bind']
         label[label==self.ifalphabet.padding_idx] = -100
-
-        pred = self.model(encoder_outputs=[batch['seq_enc']], labels=label)
+        mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
+        pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
         generated = self.model.generate(input_ids=None, encoder_outputs=encoder_outputs)
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
