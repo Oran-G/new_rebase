@@ -299,7 +299,9 @@ class RebaseT5(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
 
-        
+        class EncoderOutput():
+            def __init__(self, tensor):
+                self.last_hidden_state = [tensor]  
         start_time = time.time()
 
         torch.cuda.empty_cache()
@@ -308,7 +310,7 @@ class RebaseT5(pl.LightningModule):
         label[label==self.ifalphabet.padding_idx] = -100
         mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
         pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
-        generated = self.model.generate(input_ids=None, encoder_outputs={'last_hidden_state':[batch['embedding']]})
+        generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']))
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
         '''
@@ -320,6 +322,7 @@ class RebaseT5(pl.LightningModule):
         }
         '''
         ''' not working - to be fixed later'''
+       
         for i in range(pred[1].shape[0]):
             try:
 
