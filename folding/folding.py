@@ -397,6 +397,7 @@ def main(cfg: DictConfig) -> None:
         if cfg.model.checkpoint_path and cfg.model.test_only: 
             print('test-only mode. running test')
             model = model.to(torch.device("cuda:0"))
+            model.hparams.io.test_embedded = cfg.io.test_embedded
             trainer.test(model, dataloaders=model.test_dataloader())
             
             pickle.dump(model.test_data, open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb"))
