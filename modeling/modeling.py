@@ -51,7 +51,7 @@ class RebaseT5(pl.LightningModule):
             tokenization['toks']
         )
         self.cfg = cfg
-        self.hparams = cfg
+
 
         self.perplex = torch.nn.CrossEntropyLoss(reduction='none')
         
