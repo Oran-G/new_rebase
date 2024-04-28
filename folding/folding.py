@@ -393,6 +393,7 @@ def main(cfg: DictConfig) -> None:
     
     try:
         #add in support for test-only mode
+        print('hello')
         if cfg.model.checkpoint_path and cfg.model.test_only: 
             print('test-only mode. running test')
             model = model.to(torch.device("cuda:0"))
