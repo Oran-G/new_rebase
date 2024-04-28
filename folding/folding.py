@@ -332,11 +332,11 @@ class RebaseT5(pl.LightningModule):
                 
                 lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
                 lastidx_generation = -1 if len((generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-                import pdb; pdb.set_trace()
+                # import pdb; pdb.set_trace()
                 self.test_data.append({
                     'id': batch['id'][i],
-                    'seq': self.decode(batch['seq'][i].tolist()).split("<eos>")[0],
-                    'bind': self.decode(batch['bind'][i].tolist()[:batch['bind'][i].tolist().index(2)]),
+                    'seq': self.decode(batch['seq'][i].long().tolist()).split("<eos>")[0],
+                    'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
                     'predicted': self.decode(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0]),
                     'predicted_logits': nn.functional.softmax(pred[1], dim=-1)[:lastidx],
                     'generated': self.decode(nn.functional.softmax(generated[1], dim=-1).argmax(-1).tolist()[:lastidx_generation][0]),
