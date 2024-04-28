@@ -308,7 +308,7 @@ class RebaseT5(pl.LightningModule):
         label[label==self.ifalphabet.padding_idx] = -100
         mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
         pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
-        generated = self.model.generate(input_ids=None, encoder_outputs=encoder_outputs)
+        generated = self.model.generate(input_ids=None, encoder_outputs=[batch['embedding']])
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'])
         '''
