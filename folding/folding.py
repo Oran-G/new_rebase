@@ -339,8 +339,7 @@ class RebaseT5(pl.LightningModule):
                     'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
                     'predicted': self.decode(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0]),
                     'predicted_logits': nn.functional.softmax(pred[1], dim=-1)[:lastidx],
-                    'generated': self.decode(nn.functional.softmax(generated[1], dim=-1).argmax(-1).tolist()[:lastidx_generation][0]),
-                    'generated_logits': nn.functional.softmax(generated[1], dim=-1)[:lastidx_generation],
+                    'generated': self.decode(generated[i][:lastidx_generation]),
                     'predict_loss': loss.item(),
                 })
                 
