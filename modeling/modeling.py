@@ -185,7 +185,13 @@ class RebaseT5(pl.LightningModule):
     
     def test_step(self, batch, batch_idx):
 
-    
+        class EncoderOutput():
+            def __init__(self, tensor):
+                self.last_hidden_state = tensor  
+            def __getitem__(self, key):
+                return self.last_hidden_state
+            def __len__(self):
+                return 1
         start_time = time.time()
 
         torch.cuda.empty_cache()
@@ -198,7 +204,7 @@ class RebaseT5(pl.LightningModule):
         mask = (batch['embedding'][:, :, 0] != self.dictionary.pad()).int()
         
         pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'].long())
-        generated = self.model.generate(input_ids=None, encoder_outputs=[batch['embedding']], attention_mask=mask)
+        generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), attention_mask=mask)
         '''
         record validation data into val_data
         form:  {
@@ -210,17 +216,16 @@ class RebaseT5(pl.LightningModule):
         ''' not working - to be fixed later'''
         for i in range(pred[1].shape[0]):
             try:
-
                 lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-                lastidx_generation = -1 if len((generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+                lastidx_generation = -1 if len((generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+                # import pdb; pdb.set_trace()
                 self.test_data.append({
                     'id': batch['id'][i],
-                    'seq': self.dictionary.string(batch['seq'][i].tolist(), include_eos=True).split("<eos>")[0],
-                    'bind': self.dictionary.string(batch['bind'][i].tolist()[:batch['bind'][i].tolist().index(2)]),
-                    'predicted': self.dictionary.string(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0]),
+                    'seq': self.decode(batch['seq'][i].long().tolist()).split("<eos>")[0],
+                    'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
+                    'predicted': self.decode(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0]),
                     'predicted_logits': nn.functional.softmax(pred[1], dim=-1)[:lastidx],
-                    'generated': self.dictionary.string(nn.functional.softmax(generated[1], dim=-1).argmax(-1).tolist()[:lastidx_generation][0]),
-                    'generated_logits': nn.functional.softmax(generated[1], dim=-1)[:lastidx_generation],
+                    'generated': self.decode(generated[i][:lastidx_generation]),
                     'predict_loss': loss.item(),
                 })
             
@@ -265,26 +270,31 @@ def main(cfg: DictConfig) -> None:
         log_every_n_steps=5,
 
         )
-    trainer.fit(model)
 
-        try:
+
+    try:
         #add in support for test-only mode
-            if cfg.model.checkpoint_path and cfg.model.test_only: 
-                print('test-only mode. running test')
-                model = model.to(torch.device("cuda:0"))
-                trainer.test(model, dataloaders=model.test_dataloader())
-                
-                pickle.dump(model.test_data, open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb"))
-                wandb.run.summary["test_data"] = wandb.Artifact("test_data", type="dataset")
-                wandb.run.summary["test_data"].add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", skip_cache=True)
-                wandb.run.log_artifact(wandb.run.summary["test_data"])
-                return
+        print(cfg.model.checkpoint_path)
+        print(cfg.model.test_only)
+        if cfg.model.checkpoint_path and cfg.model.test_only: 
+            print('test-only mode. running test')
+            model = model.to(torch.device("cuda:0"))
+            model.hparams.io.test_embedded = cfg.io.test_embedded
+            trainer.test(model, dataloaders=model.test_dataloader())
+            os.mknod(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl")
+            pickle.dump(model.test_data, open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb"))
+            wandb.run.summary["test_data"] = wandb.Artifact("test_data", type="dataset")
+            wandb.run.summary["test_data"].add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", skip_cache=True)
+            wandb.run.log_artifact(wandb.run.summary["test_data"])
+            return
     except:
         pass
     print('ready to train!')
     trainer.fit(model)
     model = model.to(torch.device("cuda:0"))
     trainer.test(model, dataloaders=model.test_dataloader())
+    os.mknod(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl")
+
     pickle.dump(model.test_data, open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb"))
     wandb.run.summary["test_data"] = wandb.Artifact("test_data", type="dataset")
     wandb.run.summary["test_data"].add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", skip_cache=True)
