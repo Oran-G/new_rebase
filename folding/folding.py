@@ -305,7 +305,7 @@ class RebaseT5(pl.LightningModule):
             def __getitem__(self, key):
                 return self.last_hidden_state
             def __len__(self):
-                return 1ss
+                return 1
         start_time = time.time()
 
         torch.cuda.empty_cache()
