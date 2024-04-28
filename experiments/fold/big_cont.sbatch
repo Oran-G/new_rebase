@@ -13,4 +13,5 @@
 module purge
 mkdir -p /vast/og2114/output_home/logs/slurm_$SLURM_JOB_ID
 export WANDB_CACHE_DIR=/vast/og2114/output_home/logs/slurm_$SLURM_JOB_ID/wandb_cache
+export TORCH_HOME=/vast/og2114/torch_home
 singularity exec --nv --overlay /vast/og2114/rebase/inverse_fold.ext3:ro /vast/work/public/singularity/cuda11.2.2-cudnn8-devel-ubuntu20.04.sif /bin/bash -c 'source /ext3/env.sh; export TORCH_HOME=/vast/og2114/torch_home; python3 /vast/og2114/new_rebase/folding/folding.py model=foldbig +model.checkpoint_path="/vast/og2114/output_home/logs/Focus/qqgvpilc/checkpoints/acc-fold_dff-128_dmodel-512_lr-0.001_batch-128.ckpt"'

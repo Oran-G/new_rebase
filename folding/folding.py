@@ -358,9 +358,7 @@ def main(cfg: DictConfig) -> None:
     except:
         model = RebaseT5(cfg)
 
-    gpu = cfg.model.gpu
-    cfg = model.hparams
-    cfg.model.gpu = gpu
+
     
     wandb.init(settings=wandb.Settings(start_method='thread', code_dir="."), reinit=True)
     wandb.save(os.path.abspath(__file__))

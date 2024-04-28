@@ -13,4 +13,5 @@
 module purge
 mkdir -p /vast/og2114/output_home/logs/slurm_$SLURM_JOB_ID
 export WANDB_CACHE_DIR=/vast/og2114/output_home/logs/slurm_$SLURM_JOB_ID/wandb_cache
+export TORCH_HOME=/vast/og2114/torch_home
 singularity exec --nv --overlay /vast/og2114/rebase/inverse_fold.ext3:ro /vast/work/public/singularity/cuda11.2.2-cudnn8-devel-ubuntu20.04.sif /bin/bash -c 'source /ext3/env.sh; export TORCH_HOME=/vast/og2114/torch_home; python3 /vast/og2114/new_rebase/modeling/modeling.py model=m150 +model.checkpoint_path="/vast/og2114/output_home/logs/Focus/28cbwf1l/checkpoints/acc-esm2_t30_150M_UR50D_dff-128_dmodel-640_lr-0.01_batch-32.ckpt"'
