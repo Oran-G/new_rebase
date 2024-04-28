@@ -281,8 +281,8 @@ def main(cfg: DictConfig) -> None:
             model = model.to(torch.device("cuda:0"))
             model.hparams.io.test_embedded = cfg.io.test_embedded
             trainer.test(model, dataloaders=model.test_dataloader())
-            os.mknod(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl")
-            pickle.dump(model.test_data, open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb"))
+            with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb") as f:
+                pickle.dump(model.test_data, f)
             wandb.run.summary["test_data"] = wandb.Artifact("test_data", type="dataset")
             wandb.run.summary["test_data"].add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", skip_cache=True)
             wandb.run.log_artifact(wandb.run.summary["test_data"])
@@ -293,9 +293,8 @@ def main(cfg: DictConfig) -> None:
     trainer.fit(model)
     model = model.to(torch.device("cuda:0"))
     trainer.test(model, dataloaders=model.test_dataloader())
-    os.mknod(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl")
-
-    pickle.dump(model.test_data, open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb"))
+    with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", "wb") as f:
+        pickle.dump(model.test_data, f)
     wandb.run.summary["test_data"] = wandb.Artifact("test_data", type="dataset")
     wandb.run.summary["test_data"].add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", skip_cache=True)
     wandb.run.log_artifact(wandb.run.summary["test_data"])
