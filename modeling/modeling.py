@@ -228,6 +228,8 @@ class RebaseT5(pl.LightningModule):
                     'generated': self.decode(generated[i][:lastidx_generation]),
                     'predict_loss': loss.item(),
                 })
+            except:
+                pass
             
 
     
