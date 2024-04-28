@@ -7,7 +7,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=og2114@nyu.edu
 #SBATCH --output=/vast/og2114/output_home/logs/slurm_$SLURM_JOB_ID/job.out
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=2
 #SBATCH --job-name='Continue Folding trainer large model training'
 #SBATCH --signal=SIGUSR1@90
 module purge
