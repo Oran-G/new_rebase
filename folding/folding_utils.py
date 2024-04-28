@@ -326,7 +326,7 @@ class EncoderDataset(Dataset):
                         'seq': batch['seq'][i][int(self.eos):batch['lens'][i]+int(self.eos)],
                         'bind': batch['bind'][i][int(self.eos):batch['bind_lens'][i]+int(self.eos)],
                         'coords': batch['coords'][i][:batch['lens'][i]],
-                        'embedding': embeddings[i, :batch['lens'][i], :].to(torch.device('cpu')), 
+                        'seq_enc': embeddings[i, :batch['lens'][i], :].to(torch.device('cpu')), 
                         'cluster': batch['cluster'][i]
                     })
                 torch.cuda.empty_cache()
@@ -399,6 +399,6 @@ class EncoderDataset(Dataset):
             'lens': [len(l) for l in select_by_key(batch, 'seq')],
             'bind_lens': [len(l) for l in select_by_key(batch, 'bind')], 
             'cluster': select_by_key(batch, 'cluster'),
-            'embedding': self.collate_tensors(select_by_key(batch, 'embedding')) #shape (B, l, emb)
+            'embedding': self.collate_tensors(select_by_key(batch, 'seq_enc')) #shape (B, l, emb)
         }
         return post_proccessed
