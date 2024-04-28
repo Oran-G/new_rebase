@@ -74,6 +74,7 @@ class RebaseT5(pl.LightningModule):
 
         self.model = T5ForConditionalGeneration(t5_config)
         self.accuracy = torchmetrics.Accuracy(ignore_index=self.dictionary.pad())
+        self.test_data = []
         print('initialized')
 
     def perplexity(self, output, target):
