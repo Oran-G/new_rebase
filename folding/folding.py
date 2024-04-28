@@ -358,9 +358,6 @@ def main(cfg: DictConfig) -> None:
     except:
         model = RebaseT5(cfg)
 
-
-    except:
-        pass
     gpu = cfg.model.gpu
     cfg = model.hparams
     cfg.model.gpu = gpu
