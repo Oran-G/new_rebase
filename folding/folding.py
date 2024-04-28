@@ -365,7 +365,10 @@ def main(cfg: DictConfig) -> None:
     except:
         model = RebaseT5(cfg)
 
-
+    try:
+        os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")
+    except: 
+        pass
     
     wandb.init(settings=wandb.Settings(start_method='thread', code_dir="."), reinit=True)
     wandb.save(os.path.abspath(__file__))
