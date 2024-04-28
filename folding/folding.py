@@ -389,7 +389,8 @@ def main(cfg: DictConfig) -> None:
         gradient_clip_val=0.3,
         )
     
-    try:
+    # try:
+    if True:
         #add in support for test-only mode
         print(cfg.model.checkpoint_path)
         print(cfg.model.test_only)
@@ -403,8 +404,8 @@ def main(cfg: DictConfig) -> None:
             wandb.run.summary["test_data"].add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/test_data.pkl", skip_cache=True)
             wandb.run.log_artifact(wandb.run.summary["test_data"])
             return
-    except:
-        pass
+    # except:
+    #     pass
     print('ready to train!')
     trainer.fit(model)
     model = model.to(torch.device("cuda:0"))
