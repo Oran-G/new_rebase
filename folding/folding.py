@@ -302,6 +302,10 @@ class RebaseT5(pl.LightningModule):
         class EncoderOutput():
             def __init__(self, tensor):
                 self.last_hidden_state = tensor  
+            def __getitem__(self, key):
+                return self.last_hidden_state
+            def __len__(self):
+                return 1
         start_time = time.time()
 
         torch.cuda.empty_cache()
