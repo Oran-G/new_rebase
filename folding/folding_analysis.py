@@ -164,7 +164,18 @@ class TestAnalyzer():
         sns.lineplot(x=range(len(self.df)), y=self.df[f'{mode}_accuracy'].sort_values(), title='Accuracy of the model on the test set', xlabel='Test protein', ylabel='Accuracy')
     def recall(self, mode='predicted'):
         #return the mean recall of the model on the test set
+        if mode == 'predicted':
+            correct = self.df[self.df[f'{mode}_accuracy'] == 1]
+        elif mode == 'generated':
+            correct = self.df[self.df[f'{mode}_accuracy'] == 0]
+        else:
+            raise ValueError('mode must be either "predicted" or "generated"')
+        return len(correct) / len(self.df)
+    def precision(self, mode='predicted'):
+        #return the mean precision of the model on the test set
         if mode not in ['predicted', 'generated']:
             raise ValueError('mode must be either "predicted" or "generated"')
-        correct = self.df[self.df[f'{mode}_accuracy'] == 1]
+        return np.mean(self.df[f'{mode}_accuracy']), np.std(f'{mode}_accuracy'), accuracies
+
+            
 
