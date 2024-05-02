@@ -232,7 +232,8 @@ class RebaseT5(pl.LightningModule):
                     'predicted': self.decode(nn.functional.softmax(pred[1][i], dim=-1).argmax(-1).tolist()[:lastidx]),
                     'predicted_logits': nn.functional.softmax(pred[1][i], dim=-1)[:lastidx],
                     'generated': self.decode(generated[i][:lastidx_generation]),
-
+                    'predicted_accuracy': pred_accuracy,
+                    'generated_accuracy': generated_accuracy,
                 })
             except:
                 pass
