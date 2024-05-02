@@ -331,9 +331,9 @@ class RebaseT5(pl.LightningModule):
        
         for i in range(pred[1].shape[0]):
             try:
-                import pdb; pdb.set_trace()
-                pred_accuracy = self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2)[i], batch['bind'][i].long())
-                generated_accuracy = self.accuracy(generated[i], batch['bind'][i].long())
+                # import pdb; pdb.set_trace()
+                # pred_accuracy = self.accuracy(nn.functional.softmax(pred[1],dim=-1).argmax(-1)[i:i+1], batch['bind'][i:i+1].long())
+                # generated_accuracy = self.accuracy(generated[i], batch['bind'][i].long())
                 lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
                 lastidx_generation = -1 if len((generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
                 # import pdb; pdb.set_trace()
@@ -344,8 +344,8 @@ class RebaseT5(pl.LightningModule):
                     'predicted': self.decode(nn.functional.softmax(pred[1][i], dim=-1).argmax(-1).tolist()[:lastidx]),
                     'predicted_logits': nn.functional.softmax(pred[1][i], dim=-1)[:lastidx],
                     'generated': self.decode(generated[i][:lastidx_generation]),
-                    'predicted_accuracy': pred_accuracy,
-                    'generated_accuracy': generated_accuracy,
+                    # 'predicted_accuracy': pred_accuracy,
+                    # 'generated_accuracy': generated_accuracy,
                 })
                 
             except IndexError:
@@ -404,8 +404,8 @@ def main(cfg: DictConfig) -> None:
         gradient_clip_val=0.3,
         )
     
-    # try:
-    if True:
+    try:
+    # if True:
         #add in support for test-only mode
 
         if cfg.model.checkpoint_path and cfg.model.test_only: 
@@ -419,17 +419,17 @@ def main(cfg: DictConfig) -> None:
             art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", skip_cache=True)
             wandb.run.log_artifact(art)
             return
-    # except:
-    #     print('ready to train!')
-    #     trainer.fit(model)
-    #     model = model.to(torch.device("cuda:0"))
-    #     trainer.test(model, dataloaders=model.test_dataloader())
-    #     with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", "wb") as f:
-    #         pickle.dump(model.test_data, f)
-    #     art = wandb.Artifact("test_data", type="dataset")
-    #     art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", skip_cache=True)
-    #     wandb.run.log_artifact(art)
-    #     return
+    except:
+        print('ready to train!')
+        trainer.fit(model)
+        model = model.to(torch.device("cuda:0"))
+        trainer.test(model, dataloaders=model.test_dataloader())
+        with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", "wb") as f:
+            pickle.dump(model.test_data, f)
+        art = wandb.Artifact("test_data", type="dataset")
+        art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", skip_cache=True)
+        wandb.run.log_artifact(art)
+        return
         
 
 if __name__ == '__main__':
