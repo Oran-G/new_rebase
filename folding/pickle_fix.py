@@ -1,6 +1,7 @@
 import pickle as pkl
 import torch
 import argparse
+import tqdm
 parser = argparse.ArgumentParser(
     prog='ESM_embedder',
     description='Embeds protein sequences using ESM')
@@ -14,7 +15,7 @@ parser.add_argument('--data_path', nargs='*',
 args = parser.parse_args()
 data = pkl.load(open(args.data_path, 'rb'))
 new_data = []
-for row in new_data:
+for row in  enumerate(tqdm.tqdm(data)):
     new_data.append({
         'id': row['id'],
         'seq': row['seq'],
