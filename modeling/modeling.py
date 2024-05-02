@@ -219,24 +219,23 @@ class RebaseT5(pl.LightningModule):
         '''
         ''' not working - to be fixed later'''
         for i in range(pred[1].shape[0]):
-            try:
-                # pred_accuracy = self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2)[i], batch['bind'][i].long())
-                # generated_accuracy = self.accuracy(generated[i], batch['bind'][i].long())
-                lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-                lastidx_generation = -1 if len((generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-                # import pdb; pdb.set_trace()
-                self.test_data.append({
-                    'id': batch['id'][i],
-                    'seq': self.decode(batch['seq'][i].long().tolist()).split("<eos>")[0],
-                    'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
-                    'predicted': self.decode(nn.functional.softmax(pred[1][i], dim=-1).argmax(-1).tolist()[:lastidx]),
-                    'predicted_logits': nn.functional.softmax(pred[1][i], dim=-1)[:lastidx].to(torch.device('cpu')).tolist(),
-                    'generated': self.decode(generated[i][:lastidx_generation]),
-                    # 'predicted_accuracy': pred_accuracy,
-                    # 'generated_accuracy': generated_accuracy,
-                })
-            except:
-                pass
+            
+            # pred_accuracy = self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2)[i], batch['bind'][i].long())
+            # generated_accuracy = self.accuracy(generated[i], batch['bind'][i].long())
+            lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+            lastidx_generation = -1 if len((generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+            # import pdb; pdb.set_trace()
+            self.test_data.append({
+                'id': batch['id'][i],
+                'seq': self.decode(batch['seq'][i].long().tolist()).split("<eos>")[0],
+                'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
+                'predicted': self.decode(nn.functional.softmax(pred[1][i], dim=-1).argmax(-1).tolist()[:lastidx]),
+                'predicted_logits': nn.functional.softmax(pred[1][i], dim=-1)[:lastidx].to(torch.device('cpu')).tolist(),
+                'generated': self.decode(generated[i][:lastidx_generation]),
+                # 'predicted_accuracy': pred_accuracy,
+                # 'generated_accuracy': generated_accuracy,
+            })
+            
             
 
     
