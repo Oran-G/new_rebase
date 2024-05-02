@@ -342,7 +342,7 @@ class RebaseT5(pl.LightningModule):
                     'seq': self.decode(batch['seq'][i].long().tolist()).split("<eos>")[0],
                     'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
                     'predicted': self.decode(nn.functional.softmax(pred[1][i], dim=-1).argmax(-1).tolist()[:lastidx]),
-                    'predicted_logits': nn.functional.softmax(pred[1][i], dim=-1)[:lastidx],
+                    'predicted_logits': nn.functional.softmax(pred[1][i], dim=-1)[:lastidx].to(torch.device('cpu')).tolist(),
                     'generated': self.decode(generated[i][:lastidx_generation]),
                     # 'predicted_accuracy': pred_accuracy,
                     # 'generated_accuracy': generated_accuracy,

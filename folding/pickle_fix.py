@@ -1,5 +1,6 @@
 import pickle as pkl
 import torch
+import argparse
 parser = argparse.ArgumentParser(
     prog='ESM_embedder',
     description='Embeds protein sequences using ESM')
@@ -19,7 +20,7 @@ for row in new_data:
         'seq': row['seq'],
         'bind': row['bind'],
         'predicted': row['predicted'],
-        'predicted_logits': row['predicted_logits'].to(torch.device('cpu')),
+        'predicted_logits': row['predicted_logits'].to(torch.device('cpu')).tolist(),
         'generated': row['generated'],
     })
 pkl.dump(new_data, open(args.data_path, 'wb'))
