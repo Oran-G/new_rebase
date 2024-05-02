@@ -208,6 +208,7 @@ class RebaseT5(pl.LightningModule):
         
         pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'].long())
         generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), attention_mask=mask)
+
         '''
         record validation data into val_data
         form:  {
@@ -219,6 +220,9 @@ class RebaseT5(pl.LightningModule):
         ''' not working - to be fixed later'''
         for i in range(pred[1].shape[0]):
             try:
+                loss=self.loss(torch.transpose(pred[1],1, 2)[i], batch['bind'][i].long())
+                pred_accuracy = self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2)[i], batch['bind'][i].long())
+                generated_accuracy = self.accuracy(generated[i], batch['bind'][i].long())
                 lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
                 lastidx_generation = -1 if len((generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
                 # import pdb; pdb.set_trace()
@@ -226,8 +230,8 @@ class RebaseT5(pl.LightningModule):
                     'id': batch['id'][i],
                     'seq': self.decode(batch['seq'][i].long().tolist()).split("<eos>")[0],
                     'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
-                    'predicted': self.decode(nn.functional.softmax(pred[1], dim=-1).argmax(-1).tolist()[:lastidx][0]),
-                    'predicted_logits': nn.functional.softmax(pred[1], dim=-1)[:lastidx],
+                    'predicted': self.decode(nn.functional.softmax(pred[1][i], dim=-1).argmax(-1).tolist()[:lastidx]),
+                    'predicted_logits': nn.functional.softmax(pred[1][i], dim=-1)[:lastidx],
                     'generated': self.decode(generated[i][:lastidx_generation]),
                     'predict_loss': loss.item(),
                 })
