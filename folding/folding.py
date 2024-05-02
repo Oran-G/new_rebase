@@ -399,11 +399,10 @@ def main(cfg: DictConfig) -> None:
         gradient_clip_val=0.3,
         )
     
-    # try:
-    if True:
+    try:
+    # if True:
         #add in support for test-only mode
-        print(cfg.model.checkpoint_path)
-        print(cfg.model.test_only)
+
         if cfg.model.checkpoint_path and cfg.model.test_only: 
             print('test-only mode. running test')
             model = model.to(torch.device("cuda:0"))
@@ -415,17 +414,17 @@ def main(cfg: DictConfig) -> None:
             art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", skip_cache=True)
             wandb.run.log_artifact(art)
             return
-    # except:
-    #     print('ready to train!')
-    #     trainer.fit(model)
-    #     model = model.to(torch.device("cuda:0"))
-    #     trainer.test(model, dataloaders=model.test_dataloader())
-    #     with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", "wb") as f:
-    #         pickle.dump(model.test_data, f)
-    #     art = wandb.Artifact("test_data", type="dataset")
-    #     art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", skip_cache=True)
-    #     wandb.run.log_artifact(art)
-    #     return
+    except:
+        print('ready to train!')
+        trainer.fit(model)
+        model = model.to(torch.device("cuda:0"))
+        trainer.test(model, dataloaders=model.test_dataloader())
+        with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", "wb") as f:
+            pickle.dump(model.test_data, f)
+        art = wandb.Artifact("test_data", type="dataset")
+        art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", skip_cache=True)
+        wandb.run.log_artifact(art)
+        return
         
 
 if __name__ == '__main__':
