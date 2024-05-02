@@ -413,10 +413,10 @@ def main(cfg: DictConfig) -> None:
             model = model.to(torch.device("cuda:0"))
             model.hparams.io.test_embedded = cfg.io.test_embedded
             trainer.test(model, dataloaders=model.test_dataloader())
-            with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", "wb") as f:
+            with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_test_data.pkl", "wb") as f:
                 pickle.dump(model.test_data, f)
             art = wandb.Artifact("test_data", type="dataset")
-            art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", skip_cache=True)
+            art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_test_data.pkl", skip_cache=True)
             wandb.run.log_artifact(art)
             return
     except:
@@ -424,10 +424,10 @@ def main(cfg: DictConfig) -> None:
         trainer.fit(model)
         model = model.to(torch.device("cuda:0"))
         trainer.test(model, dataloaders=model.test_dataloader())
-        with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", "wb") as f:
+        with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_test_data.pkl", "wb") as f:
             pickle.dump(model.test_data, f)
         art = wandb.Artifact("test_data", type="dataset")
-        art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", skip_cache=True)
+        art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_test_data.pkl", skip_cache=True)
         wandb.run.log_artifact(art)
         return
         

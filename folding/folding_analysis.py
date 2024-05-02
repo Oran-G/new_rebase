@@ -2,6 +2,8 @@ import pandas as pd
 import pickle
 from typing import List
 import psa
+import seaborn as sns 
+import editdistance
 #pip install pairwise-sequence-alignment
 def analyze_data(path):
     # Read the CSV file
@@ -127,4 +129,42 @@ class DataAnalyzer:
                     correct += 1
             accuracies.append(correct / len(target))
         return np.mean(accuracies), np.std(accuracies), accuracies
-    
+class TestAnalyzer():
+    def __init__(self, data):
+        self.data = pickle.load(open(data, 'rb'))
+        new_data = []
+        for row in self.data:
+            row = self.accuracy(row)
+            row = self.edit_distance(row)
+            new_data.append(row)
+        self.data = new_data
+
+        self.df = pd.DataFrame.from_records(self.data)
+
+    def accuracy(self, row):
+        #return the mean accuracy of the model on the test set
+        #store the accuracy between the predicted sequence and the actual sequence, stored in row['predicted'] and row['bind']
+        correct = 0 
+        for t, p in zip(row['bind'], row['predicted']):
+            if t == p:
+                correct += 1
+        predicted_accuracy = correct / len(row['bind'])
+        #store the accuracy between the generated sequence and the actual sequence, stored in row['predicted'] and row['bind']. these sequences might be different lengths
+        row['predicted_accuracy'] = predicted_accuracy
+        return row
+    def edit_distance(self, row):
+        row['generated_accuracy'] = editdistance.eval(row['bind'], row['generated'])
+        return row
+        
+    def plot(self, mode='predicted'):
+        if mode not in ['predicted', 'generated']:
+            raise ValueError('mode must be either "predicted" or "generated"')
+        #seaborn line plot of the accuracies, sorted by the accuracy
+
+        sns.lineplot(x=range(len(self.df)), y=self.df[f'{mode}_accuracy'].sort_values(), title='Accuracy of the model on the test set', xlabel='Test protein', ylabel='Accuracy')
+    def recall(self, mode='predicted'):
+        #return the mean recall of the model on the test set
+        if mode not in ['predicted', 'generated']:
+            raise ValueError('mode must be either "predicted" or "generated"')
+        correct = self.df[self.df[f'{mode}_accuracy'] == 1]
+
