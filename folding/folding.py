@@ -229,7 +229,7 @@ class RebaseT5(pl.LightningModule):
             apply_eos=True,
             apply_bos=False,
         )
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=8, device=self.device, path=self.hparams.io.test_embedded, cluster=False)
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=16, device=self.device, path=self.hparams.io.test_embedded, cluster=False)
         dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         print('test dataset length:', len(encoder_dataset))
         return dataloader 
