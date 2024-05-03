@@ -379,7 +379,7 @@ class RebaseT5(pl.LightningModule):
                     # 'generated_accuracy': generated_accuracy,
                 }
                 for j in range(self.test_k):
-                    re[f'generated_{i}'] = self.decode(full_generated[(i*pred[1].shape[0]) + j][1:lastidx_generation])
+                    re[f'generated_{i}'] = self.decode(full_generated[(i*pred[1].shape[0]) + j].argmax(-1)[1:lastidx_generation])
 
                 self.test_data.append(re)
                 
