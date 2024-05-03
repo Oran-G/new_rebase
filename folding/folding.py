@@ -314,10 +314,10 @@ class RebaseT5(pl.LightningModule):
                             return self.last_hidden_state
                         else:
                             raise IndexError("Index out of range.")  # Only one item, so index 0 is valid
-                        elif key == "last_hidden_state":
+                    elif key == "last_hidden_state":
                             return self.last_hidden_state
-                        else:
-                            raise KeyError(f"Key '{key}' not supported.")
+                    else:
+                        raise KeyError(f"Key '{key}' not supported.")
 
                 def __setitem__(self, key, value):
                     # Similarly, handle integer keys for assignment
@@ -330,8 +330,8 @@ class RebaseT5(pl.LightningModule):
                         self.last_hidden_state = value
                     else:
                         raise KeyError(f"Key '{key}' not supported.")
-                    def __len__(self):
-                        return 1
+                def __len__(self):
+                    return 1
         start_time = time.time()
 
         torch.cuda.empty_cache()
