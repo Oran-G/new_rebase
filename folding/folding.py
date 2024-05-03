@@ -83,7 +83,7 @@ class RebaseT5(pl.LightningModule):
         '''
         self.test_data = []
         print('initialized')
-        self.test_k = 10
+        self.test_k = 5
         
         
 
