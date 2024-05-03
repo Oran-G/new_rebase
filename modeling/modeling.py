@@ -201,7 +201,7 @@ class RebaseT5(pl.LightningModule):
             }
         else:
             return opt
-    
+
     def test_step(self, batch, batch_idx):
 
         class EncoderOutput():
@@ -266,18 +266,18 @@ class RebaseT5(pl.LightningModule):
             # import pdb; pdb.set_trace()
             re = {
                 'id': batch['id'][i],
-                'seq': self.decode(batch['seq'][i].long().tolist()).split("<eos>")[0],
-                'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
-                'predicted': self.decode(nn.functional.softmax(pred[1][i], dim=-1).argmax(-1).tolist()[:lastidx]),
+                'seq': self.dictionary.string(batch['seq'][i].long().tolist()).split("<eos>")[0],
+                'bind': self.dictionary.string(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
+                'predicted': self.dictionary.string(nn.functional.softmax(pred[1][i], dim=-1).argmax(-1).tolist()[:lastidx]),
                 'predicted_logits': nn.functional.softmax(pred[1][i], dim=-1)[:lastidx].to(torch.device('cpu')).tolist(),
-                'generated': self.decode(generated[i][:lastidx_generation]),
+                'generated': self.dictionary.string(generated[i][:lastidx_generation]),
                 # 'predicted_accuracy': pred_accuracy,
                 # 'generated_accuracy': generated_accuracy,
             }
 
             for j in range(self.test_k):
                 lastidx_generation = -1 if len((full_generated[(i*self.test_k) + j]  == self.dictionary.eos()).nonzero(as_tuple=True)[0]) == 0 else (full_generated[(i*self.test_k) + j] == self.dictionary.eos()).nonzero(as_tuple=True)[0].tolist()[0]
-                re[f'generated_{j}'] = self.decode(full_generated[(i*self.test_k) + j][1:lastidx_generation])
+                re[f'generated_{j}'] = self.dictionary.string(full_generated[(i*self.test_k) + j][1:lastidx_generation])
             self.test_data.append(re)
 
     
