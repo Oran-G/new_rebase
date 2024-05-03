@@ -429,6 +429,12 @@ def main(cfg: DictConfig) -> None:
         print('ready to train!')
         trainer.fit(model)
         model = model.to(torch.device("cuda:0"))
+        trainer.test(model, dataloaders=model.val_dataloader())
+        with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_val_data.pkl", "wb") as f:
+            pickle.dump(model.test_data, f)
+        art = wandb.Artifact("test_data", type="dataset")
+        art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_val_data.pkl", skip_cache=True)
+        wandb.run.log_artifact(art)
         trainer.test(model, dataloaders=model.test_dataloader())
         with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_test_data.pkl", "wb") as f:
             pickle.dump(model.test_data, f)
