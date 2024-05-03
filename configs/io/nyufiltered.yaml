@@ -14,6 +14,7 @@ final: /vast/og2114/rebase/data/filtered_data.csv
 temp: /vast/og2114/rebase/data/filtered_data_clust.tsv
 checkpoints: /vast/og2114/output_home/models
 wandb_dir: /vast/og2114/output_home/logs
+dnafinal: /vast/og2114/rebase/data/filtered_data_by_dna.csv
 
 fasta_for_esm_embedder: /vast/og2114/rebase/data/fasta_for_esm_embedder.fasta
 train_embedded: /vast/og2114/rebase/data/folding_train_embedded.pkl
