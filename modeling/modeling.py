@@ -300,7 +300,8 @@ def main(cfg: DictConfig) -> None:
         )
 
 
-    try:
+    # try:
+    if True:
         if cfg.model.checkpoint_path and cfg.model.test_only: 
             print('test-only mode. running test')
             model = model.to(torch.device("cuda:0"))
@@ -313,17 +314,17 @@ def main(cfg: DictConfig) -> None:
             wandb.run.log_artifact(art)
             print(len(model.test_data))
             return
-    except:
+    # except:
         
-        print('ready to train!')
-        trainer.fit(model)
-        model = model.to(torch.device("cuda:0"))
-        trainer.test(model, dataloaders=model.test_dataloader())
-        with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", "wb") as f:
-            pickle.dump(model.test_data, f)
-        art = wandb.Artifact("test_data", type="dataset")
-        art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", skip_cache=True)
-        wandb.run.log_artifact(art)
+    #     print('ready to train!')
+    #     trainer.fit(model)
+    #     model = model.to(torch.device("cuda:0"))
+    #     trainer.test(model, dataloaders=model.test_dataloader())
+    #     with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", "wb") as f:
+    #         pickle.dump(model.test_data, f)
+    #     art = wandb.Artifact("test_data", type="dataset")
+    #     art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{model.hparams.model.name}_test_data.pkl", skip_cache=True)
+    #     wandb.run.log_artifact(art)
 
 
   
