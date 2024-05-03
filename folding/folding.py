@@ -341,7 +341,7 @@ class RebaseT5(pl.LightningModule):
         mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
         pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
         generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']))
-        full_generated = self.model.generate(input_ids=None, encoder_outputs=(batch['embedding']), num_beams=self.test_k, num_return_sequences=self.test_k)
+        full_generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), num_beams=self.test_k, num_return_sequences=self.test_k)
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         
         
