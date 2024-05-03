@@ -361,6 +361,7 @@ class RebaseT5(pl.LightningModule):
        
         for i in range(pred[1].shape[0]):
             try:
+                
                 # import pdb; pdb.set_trace()
                 # pred_accuracy = self.accuracy(nn.functional.softmax(pred[1],dim=-1).argmax(-1)[i:i+1], batch['bind'][i:i+1].long())
                 # generated_accuracy = self.accuracy(generated[i], batch['bind'][i].long())
