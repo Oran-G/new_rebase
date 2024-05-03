@@ -320,6 +320,7 @@ class RebaseT5(pl.LightningModule):
         mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
         pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
         generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']))
+        full_generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), num_beams=self.test_k, num_return_sequences=self.test_k)
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         
         
@@ -333,6 +334,7 @@ class RebaseT5(pl.LightningModule):
         }
         '''
         ''' not working - to be fixed later'''
+        import pdb; pdb.set_trace()
        
         for i in range(pred[1].shape[0]):
             try:
@@ -342,7 +344,8 @@ class RebaseT5(pl.LightningModule):
                 lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
                 lastidx_generation = -1 if len((generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
                 # import pdb; pdb.set_trace()
-                self.test_data.append({
+
+                re = {
                     'id': batch['id'][i],
                     'seq': self.decode(batch['seq'][i].long().tolist()).split("<eos>")[0],
                     'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
@@ -351,7 +354,10 @@ class RebaseT5(pl.LightningModule):
                     'generated': self.decode(generated[i][:lastidx_generation]),
                     # 'predicted_accuracy': pred_accuracy,
                     # 'generated_accuracy': generated_accuracy,
-                })
+                }
+                for i in range(self.test_k):
+
+                self.test_data.append(re)
                 
             except IndexError:
                 print('Index Error')
