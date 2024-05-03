@@ -261,8 +261,8 @@ class RebaseT5(pl.LightningModule):
             
             # pred_accuracy = self.accuracy(torch.transpose(nn.functional.softmax(pred[1],dim=-1), 1,2)[i], batch['bind'][i].long())
             # generated_accuracy = self.accuracy(generated[i], batch['bind'][i].long())
-            lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-            lastidx_generation = -1 if len((generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+            lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.dictionary.eos()).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.self.dictionary.eos()).nonzero(as_tuple=True)[0].tolist()[0]
+            lastidx_generation = -1 if len((generated[i]  == self.self.dictionary.eos()).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.self.dictionary.eos()).nonzero(as_tuple=True)[0].tolist()[0]
             # import pdb; pdb.set_trace()
             re = {
                 'id': batch['id'][i],
@@ -276,7 +276,7 @@ class RebaseT5(pl.LightningModule):
             }
 
             for j in range(self.test_k):
-                lastidx_generation = -1 if len((full_generated[(i*self.test_k) + j]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (full_generated[(i*self.test_k) + j] == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+                lastidx_generation = -1 if len((full_generated[(i*self.test_k) + j]  == self.self.dictionary.eos()).nonzero(as_tuple=True)[0]) == 0 else (full_generated[(i*self.test_k) + j] == self.self.dictionary.eos()).nonzero(as_tuple=True)[0].tolist()[0]
                 re[f'generated_{j}'] = self.decode(full_generated[(i*self.test_k) + j][1:lastidx_generation])
             self.test_data.append(re)
 
