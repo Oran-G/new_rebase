@@ -12,6 +12,7 @@ gpu: -1
 max_epochs: -1
 precision: 32
 sample_by_cluster: True
+dna_clust: False
 seq_identity: .3
 name: esm2_t30_150M_UR50D
 #size -> 1.6 million params
