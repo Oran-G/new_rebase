@@ -53,6 +53,8 @@ class RebaseT5(pl.LightningModule):
             tokenization['toks']
         )
         self.cfg = cfg
+        if not hasattr(self.hparams.model, 'dna_clust'):
+            self.hparams.model.dna_clust = False
 
 
         self.perplex = torch.nn.CrossEntropyLoss(reduction='none')
