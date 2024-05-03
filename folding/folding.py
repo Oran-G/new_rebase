@@ -361,7 +361,7 @@ class RebaseT5(pl.LightningModule):
        
         for i in range(pred[1].shape[0]):
             try:
-                
+
                 # import pdb; pdb.set_trace()
                 # pred_accuracy = self.accuracy(nn.functional.softmax(pred[1],dim=-1).argmax(-1)[i:i+1], batch['bind'][i:i+1].long())
                 # generated_accuracy = self.accuracy(generated[i], batch['bind'][i].long())
@@ -380,7 +380,8 @@ class RebaseT5(pl.LightningModule):
                     # 'generated_accuracy': generated_accuracy,
                 }
                 for j in range(self.test_k):
-                    re[f'generated_{i}'] = self.decode(full_generated[(i*pred[1].shape[0]) + j].argmax(-1)[1:lastidx_generation])
+                    lastidx_generation = -1 if len((full_generated[(i*pred[1].shape[0]) + j]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (full_generated[(i*pred[1].shape[0]) + j] == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+                    re[f'generated_{i}'] = self.decode(full_generated[(i*pred[1].shape[0]) + j][1:lastidx_generation])
 
                 self.test_data.append(re)
                 
