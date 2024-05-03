@@ -341,9 +341,9 @@ class RebaseT5(pl.LightningModule):
         mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
         with torch.no_grad():
             pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
-            generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']))
+            generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), length_penalty=-1.0)
             torch.cuda.empty_cache()
-            full_generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), num_beams=self.test_k, num_return_sequences=self.test_k)
+            full_generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), do_sample=True, num_return_sequences=self.test_k, length_penalty=-1.0)
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         
         
@@ -357,7 +357,7 @@ class RebaseT5(pl.LightningModule):
         }
         '''
         ''' not working - to be fixed later'''
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
        
         for i in range(pred[1].shape[0]):
             try:
@@ -379,7 +379,7 @@ class RebaseT5(pl.LightningModule):
                     # 'generated_accuracy': generated_accuracy,
                 }
                 for j in range(self.test_k):
-                    re[f'generated_{i}'] = self.decode(full_generated[i][j][1:lastidx_generation])
+                    re[f'generated_{i}'] = self.decode(full_generated[(i*pred[1].shape[0]) + j][1:lastidx_generation])
 
                 self.test_data.append(re)
                 
