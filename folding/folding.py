@@ -307,10 +307,11 @@ class RebaseT5(pl.LightningModule):
         class EncoderOutput():
             def __init__(self, tensor):
                 self.last_hidden_state = tensor  
-                def __getitem__(self, key):
+                def __getitem__(self, key='last_hidden_state'):
                     if key == "last_hidden_state":
                         return self.last_hidden_state
                     raise KeyError(f"Key {key} not supported.")
+
 
                 def __setitem__(self, key, value):
                     if key == "last_hidden_state":
