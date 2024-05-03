@@ -207,8 +207,29 @@ class RebaseT5(pl.LightningModule):
         class EncoderOutput():
             def __init__(self, tensor):
                 self.last_hidden_state = tensor  
-            def __getitem__(self, key):
-                return self.last_hidden_state
+            def __getitem__(self, key='last_hidden_state'):
+                # Check if the key is an integer and handle it accordingly
+                if isinstance(key, int):
+                    if key == 0:
+                        return self.last_hidden_state
+                    else:
+                        raise IndexError("Index out of range.")  # Only one item, so index 0 is valid
+                elif key == "last_hidden_state":
+                        return self.last_hidden_state
+                else:
+                    raise KeyError(f"Key '{key}' not supported.")
+
+            def __setitem__(self, key, value):
+                # Similarly, handle integer keys for assignment
+                if isinstance(key, int):
+                    if key == 0:
+                        self.last_hidden_state = value
+                    else:
+                        raise IndexError("Index out of range.")
+                elif key == "last_hidden_state":
+                    self.last_hidden_state = value
+                else:
+                    raise KeyError(f"Key '{key}' not supported.")
             def __len__(self):
                 return 1
         start_time = time.time()
