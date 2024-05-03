@@ -307,8 +307,17 @@ class RebaseT5(pl.LightningModule):
         class EncoderOutput():
             def __init__(self, tensor):
                 self.last_hidden_state = tensor  
-            def __getitem__(self, key):
-                return self.last_hidden_state
+                def __getitem__(self, key):
+                    if key == "last_hidden_state":
+                        return self.last_hidden_state
+                    raise KeyError(f"Key {key} not supported.")
+
+                def __setitem__(self, key, value):
+                    if key == "last_hidden_state":
+                        self.last_hidden_state = value
+                    else:
+                        raise KeyError(f"Key {key} not supported.")
+
             def __len__(self):
                 return 1
         start_time = time.time()
@@ -355,7 +364,8 @@ class RebaseT5(pl.LightningModule):
                     # 'predicted_accuracy': pred_accuracy,
                     # 'generated_accuracy': generated_accuracy,
                 }
-                # for i in range(self.test_k):
+                for j in range(self.test_k):
+                    re[f'generated_{i}'] = self.decode(full_generated[i][j][1:lastidx_generation])
 
                 self.test_data.append(re)
                 
