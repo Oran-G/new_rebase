@@ -32,7 +32,10 @@ class CSVDataset(Dataset):
             self.df = self.df.dropna()
         def cat(x):
             return (x[:1023] if len(x) > 1024 else x)
-        self.data = self.split(split)[['id', 'seq', 'bind', 'cluster']].to_dict('records')
+        def alpha(ids):
+            return os.path.isfile(f'{self.embed_path}/{self.model_name}/{ids}.pt')
+        self.data = self.split(split)
+        self.data = self.data[self.data['id'].apply(alpha)==True][['id', 'seq', 'bind', 'cluster']].to_dict('records')
         self.data = [x for x in self.data if x not in self.data[16*711:16*714]]
         for idx in range(len(self.data)):
             d = torch.load(f'{self.embed_path}/{self.model_name}/{self.data[idx]["id"]}.pt')['representations']

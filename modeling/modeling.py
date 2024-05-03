@@ -265,6 +265,7 @@ def main(cfg: DictConfig) -> None:
     except:
         model = RebaseT5(cfg)
     max1 = 0
+    print(model.hparams)
     try:
         os.mkdir(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}")
     except: 
