@@ -307,31 +307,31 @@ class RebaseT5(pl.LightningModule):
         class EncoderOutput():
             def __init__(self, tensor):
                 self.last_hidden_state = tensor  
-                def __getitem__(self, key='last_hidden_state'):
-                    # Check if the key is an integer and handle it accordingly
-                    if isinstance(key, int):
-                        if key == 0:
-                            return self.last_hidden_state
-                        else:
-                            raise IndexError("Index out of range.")  # Only one item, so index 0 is valid
-                    elif key == "last_hidden_state":
-                            return self.last_hidden_state
+            def __getitem__(self, key='last_hidden_state'):
+                # Check if the key is an integer and handle it accordingly
+                if isinstance(key, int):
+                    if key == 0:
+                        return self.last_hidden_state
                     else:
-                        raise KeyError(f"Key '{key}' not supported.")
+                        raise IndexError("Index out of range.")  # Only one item, so index 0 is valid
+                elif key == "last_hidden_state":
+                        return self.last_hidden_state
+                else:
+                    raise KeyError(f"Key '{key}' not supported.")
 
-                def __setitem__(self, key, value):
-                    # Similarly, handle integer keys for assignment
-                    if isinstance(key, int):
-                        if key == 0:
-                            self.last_hidden_state = value
-                        else:
-                            raise IndexError("Index out of range.")
-                    elif key == "last_hidden_state":
+            def __setitem__(self, key, value):
+                # Similarly, handle integer keys for assignment
+                if isinstance(key, int):
+                    if key == 0:
                         self.last_hidden_state = value
                     else:
-                        raise KeyError(f"Key '{key}' not supported.")
-                def __len__(self):
-                    return 1
+                        raise IndexError("Index out of range.")
+                elif key == "last_hidden_state":
+                    self.last_hidden_state = value
+                else:
+                    raise KeyError(f"Key '{key}' not supported.")
+            def __len__(self):
+                return 1
         start_time = time.time()
 
         torch.cuda.empty_cache()
@@ -341,7 +341,7 @@ class RebaseT5(pl.LightningModule):
         mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
         pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
         generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']))
-        full_generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), num_beams=self.test_k, num_return_sequences=self.test_k)
+        full_generated = self.model.generate(input_ids=None, encoder_outputs=(batch['embedding']), num_beams=self.test_k, num_return_sequences=self.test_k)
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         
         
