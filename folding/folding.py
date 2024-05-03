@@ -380,8 +380,8 @@ class RebaseT5(pl.LightningModule):
                     # 'generated_accuracy': generated_accuracy,
                 }
                 for j in range(self.test_k):
-                    lastidx_generation = -1 if len((full_generated[(i*pred[1].shape[0]) + j]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (full_generated[(i*pred[1].shape[0]) + j] == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-                    re[f'generated_{i}'] = self.decode(full_generated[(i*pred[1].shape[0]) + j][1:lastidx_generation])
+                    lastidx_generation = -1 if len((full_generated[(i*self.test_k) + j]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (full_generated[(i*self.test_k) + j] == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+                    re[f'generated_{i}'] = self.decode(full_generated[(i*self.test_k) + j][1:lastidx_generation])
 
                 self.test_data.append(re)
                 
