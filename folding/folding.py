@@ -169,8 +169,10 @@ class RebaseT5(pl.LightningModule):
             cs = f'{self.hparams.io.final}-7'
         else:
             cs = self.hparams.io.final
+        enc_path= self.hparams.io.train_embedded
         if self.hparams.model.dna_clust == True:
             cs = self.hparams.io.dnafinal
+            enc_path = self.hparams.io.dna_train_embedded
         print(cs)
         dataset = folding_utils.EncodedFastaDatasetWrapper(
             folding_utils.CSVDataset(cs, 'train', clust=False),
@@ -181,7 +183,7 @@ class RebaseT5(pl.LightningModule):
         )
         
 
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=8, device=self.device, path=self.hparams.io.train_embedded, cluster=True)
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=8, device=self.device, path=enc_path, cluster=self.hparams.model.sample_by_cluster)
         dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         print('train dataset length:', len(encoder_dataset))        
         return dataloader 
@@ -194,9 +196,10 @@ class RebaseT5(pl.LightningModule):
             cs = f'{self.hparams.io.final}-7'
         else:
             cs = self.hparams.io.final
-        
+        enc_path= self.hparams.io.val_embedded
         if self.hparams.model.dna_clust == True:
             cs = self.hparams.io.dnafinal
+            enc_path = self.hparams.io.dna_val_embedded
         print(self.hparams.model.seq_identity)
         print(cs)
         dataset = folding_utils.EncodedFastaDatasetWrapper(
@@ -205,7 +208,7 @@ class RebaseT5(pl.LightningModule):
             apply_eos=True,
             apply_bos=False,
         )
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=8, device=self.device, path=self.hparams.io.val_embedded, cluster=True)
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=8, device=self.device, path=enc_path, cluster=self.hparams.model.sample_by_cluster)
         dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         print('val dataset length:', len(encoder_dataset))
         return dataloader 
@@ -218,9 +221,11 @@ class RebaseT5(pl.LightningModule):
             cs = f'{self.hparams.io.final}-7'
         else:
             cs = self.hparams.io.final
-        
+        enc_path= self.hparams.io.test_embedded
         if self.hparams.model.dna_clust == True:
             cs = self.hparams.io.dnafinal
+            enc_path = self.hparams.io.dna_test_embedded
+
         print(self.hparams.model.seq_identity)
         print(cs)
         dataset = folding_utils.EncodedFastaDatasetWrapper(
@@ -229,7 +234,7 @@ class RebaseT5(pl.LightningModule):
             apply_eos=True,
             apply_bos=False,
         )
-        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=16, device=self.device, path=self.hparams.io.test_embedded, cluster=False)
+        encoder_dataset = folding_utils.EncoderDataset(dataset, batch_size=16, device=self.device, path=enc_path, cluster=False)
         dataloader = DataLoader(encoder_dataset, batch_size=self.batch_size, shuffle=False, num_workers=1, collate_fn=encoder_dataset.collater)
         print('test dataset length:', len(encoder_dataset))
         return dataloader 

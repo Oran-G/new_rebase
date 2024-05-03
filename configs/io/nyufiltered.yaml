@@ -20,3 +20,7 @@ train_embedded: /vast/og2114/rebase/data/folding_train_embedded.pkl
 val_embedded: /vast/og2114/rebase/data/folding_val_embedded.pkl
 test_embedded: /vast/og2114/rebase/data/folding_test_embedded.pkl
 embeddings_store_dir: /vast/og2114/rebase/embeddings
+
+dna_train_embedded: /vast/og2114/rebase/data/dna_folding_train_embedded.pkl
+dna_val_embedded: /vast/og2114/rebase/data/dna_folding_val_embedded.pkl
+dna_test_embedded: /vast/og2114/rebase/data/dna_folding_test_embedded.pkl
