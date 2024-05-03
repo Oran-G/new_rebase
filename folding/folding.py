@@ -355,7 +355,7 @@ class RebaseT5(pl.LightningModule):
                     # 'predicted_accuracy': pred_accuracy,
                     # 'generated_accuracy': generated_accuracy,
                 }
-                for i in range(self.test_k):
+                # for i in range(self.test_k):
 
                 self.test_data.append(re)
                 
