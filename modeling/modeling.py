@@ -26,6 +26,7 @@ import modeling_utils
 import wandb
 import time
 import pickle
+import torch.nn as nn
 
 '''
 TODOs (10/17/21):
