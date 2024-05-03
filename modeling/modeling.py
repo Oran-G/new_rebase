@@ -220,7 +220,7 @@ class RebaseT5(pl.LightningModule):
         mask = (batch['embedding'][:, :, 0] != self.dictionary.pad()).int()
         with torch.no_grad():
             pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'].long())
-             generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), length_penalty=-1.0)
+            generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), length_penalty=-1.0)
             torch.cuda.empty_cache()
             full_generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), do_sample=True, num_return_sequences=self.test_k, length_penalty=-1.0)
        
