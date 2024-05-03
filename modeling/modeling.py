@@ -125,8 +125,13 @@ class RebaseT5(pl.LightningModule):
         }
     
     def train_dataloader(self):
+        
+        if self.hparams.model.dna_clust == True:
+            cs = self.hparams.io.dnafinal
+        else:
+            cs = self.hparams.io.final
         dataset =  modeling_utils.EmbeddedFastaDatasetWrapper(
-            modeling_utils.CSVDataset(self.hparams.io.final, 'train', self.hparams.model.name, self.hparams.io.embeddings_store_dir, clust=self.hparams.model.sample_by_cluster),
+            modeling_utils.CSVDataset(cs, 'train', self.hparams.model.name, self.hparams.io.embeddings_store_dir, clust=self.hparams.model.sample_by_cluster),
             self.dictionary,
             self.hparams.model.name,
             self.hparams.io.embeddings_store_dir,
@@ -138,8 +143,12 @@ class RebaseT5(pl.LightningModule):
 
         return dataloader
     def val_dataloader(self):
+        if self.hparams.model.dna_clust == True:
+            cs = self.hparams.io.dnafinal
+        else:
+            cs = self.hparams.io.final
         dataset = modeling_utils.EmbeddedFastaDatasetWrapper(
-            modeling_utils.CSVDataset(self.hparams.io.final, 'val', self.hparams.model.name, self.hparams.io.embeddings_store_dir, clust=self.hparams.model.sample_by_cluster),
+            modeling_utils.CSVDataset(cs, 'val', self.hparams.model.name, self.hparams.io.embeddings_store_dir, clust=self.hparams.model.sample_by_cluster),
             self.dictionary,
             self.hparams.model.name,
             self.hparams.io.embeddings_store_dir,
@@ -151,8 +160,12 @@ class RebaseT5(pl.LightningModule):
 
         return dataloader 
     def test_dataloader(self):
+        if self.hparams.model.dna_clust == True:
+            cs = self.hparams.io.dnafinal
+        else:
+            cs = self.hparams.io.final
         dataset = modeling_utils.EmbeddedFastaDatasetWrapper(
-            modeling_utils.CSVDataset(self.hparams.io.final, 'test', self.hparams.model.name, self.hparams.io.embeddings_store_dir, clust=False),
+            modeling_utils.CSVDataset(cs, 'test', self.hparams.model.name, self.hparams.io.embeddings_store_dir, clust=False),
             self.dictionary,
             self.hparams.model.name,
             self.hparams.io.embeddings_store_dir,
