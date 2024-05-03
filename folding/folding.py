@@ -83,7 +83,7 @@ class RebaseT5(pl.LightningModule):
         '''
         self.test_data = []
         print('initialized')
-        self.test_k = 1
+        self.test_k = 10
         
         
 
@@ -351,7 +351,7 @@ class RebaseT5(pl.LightningModule):
                     'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
                     'predicted': self.decode(nn.functional.softmax(pred[1][i], dim=-1).argmax(-1).tolist()[:lastidx]),
                     'predicted_logits': nn.functional.softmax(pred[1][i], dim=-1)[:lastidx].to(torch.device('cpu')).tolist(),
-                    'generated': self.decode(generated[i][:lastidx_generation]),
+                    'generated': self.decode(generated[i][1:lastidx_generation]),
                     # 'predicted_accuracy': pred_accuracy,
                     # 'generated_accuracy': generated_accuracy,
                 }
