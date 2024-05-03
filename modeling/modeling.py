@@ -218,10 +218,12 @@ class RebaseT5(pl.LightningModule):
         # import pdb; pdb.set_trace()
         # 1 for tokens that are not masked; 0 for tokens that are masked
         mask = (batch['embedding'][:, :, 0] != self.dictionary.pad()).int()
-        
-        pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'].long())
-        generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), attention_mask=mask)
-
+        with torch.no_grad():
+            pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=batch['bind'].long())
+             generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), length_penalty=-1.0)
+            torch.cuda.empty_cache()
+            full_generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), do_sample=True, num_return_sequences=self.test_k, length_penalty=-1.0)
+       
         '''
         record validation data into val_data
         form:  {
@@ -238,7 +240,7 @@ class RebaseT5(pl.LightningModule):
             lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
             lastidx_generation = -1 if len((generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
             # import pdb; pdb.set_trace()
-            self.test_data.append({
+            re = {
                 'id': batch['id'][i],
                 'seq': self.decode(batch['seq'][i].long().tolist()).split("<eos>")[0],
                 'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
@@ -247,9 +249,12 @@ class RebaseT5(pl.LightningModule):
                 'generated': self.decode(generated[i][:lastidx_generation]),
                 # 'predicted_accuracy': pred_accuracy,
                 # 'generated_accuracy': generated_accuracy,
-            })
-            
-            
+            }
+
+            for j in range(self.test_k):
+                lastidx_generation = -1 if len((full_generated[(i*self.test_k) + j]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (full_generated[(i*self.test_k) + j] == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+                re[f'generated_{j}'] = self.decode(full_generated[(i*self.test_k) + j][1:lastidx_generation])
+            self.test_data.append(re)
 
     
 

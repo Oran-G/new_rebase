@@ -360,34 +360,34 @@ class RebaseT5(pl.LightningModule):
         # import pdb; pdb.set_trace()
        
         for i in range(pred[1].shape[0]):
-            try:
+            # try:
 
-                # import pdb; pdb.set_trace()
-                # pred_accuracy = self.accuracy(nn.functional.softmax(pred[1],dim=-1).argmax(-1)[i:i+1], batch['bind'][i:i+1].long())
-                # generated_accuracy = self.accuracy(generated[i], batch['bind'][i].long())
-                lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-                lastidx_generation = -1 if len((generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-                # import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
+            # pred_accuracy = self.accuracy(nn.functional.softmax(pred[1],dim=-1).argmax(-1)[i:i+1], batch['bind'][i:i+1].long())
+            # generated_accuracy = self.accuracy(generated[i], batch['bind'][i].long())
+            lastidx = -1 if len((pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (pred[1].argmax(-1)[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+            lastidx_generation = -1 if len((generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (generated[i]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+            # import pdb; pdb.set_trace()
 
-                re = {
-                    'id': batch['id'][i],
-                    'seq': self.decode(batch['seq'][i].long().tolist()).split("<eos>")[0],
-                    'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
-                    'predicted': self.decode(nn.functional.softmax(pred[1][i], dim=-1).argmax(-1).tolist()[:lastidx]),
-                    'predicted_logits': nn.functional.softmax(pred[1][i], dim=-1)[:lastidx].to(torch.device('cpu')).tolist(),
-                    'generated': self.decode(generated[i][1:lastidx_generation]),
-                    # 'predicted_accuracy': pred_accuracy,
-                    # 'generated_accuracy': generated_accuracy,
-                }
-                for j in range(self.test_k):
-                    lastidx_generation = -1 if len((full_generated[(i*self.test_k) + j]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (full_generated[(i*self.test_k) + j] == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
-                    re[f'generated_{i}'] = self.decode(full_generated[(i*self.test_k) + j][1:lastidx_generation])
+            re = {
+                'id': batch['id'][i],
+                'seq': self.decode(batch['seq'][i].long().tolist()).split("<eos>")[0],
+                'bind': self.decode(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
+                'predicted': self.decode(nn.functional.softmax(pred[1][i], dim=-1).argmax(-1).tolist()[:lastidx]),
+                'predicted_logits': nn.functional.softmax(pred[1][i], dim=-1)[:lastidx].to(torch.device('cpu')).tolist(),
+                'generated': self.decode(generated[i][1:lastidx_generation]),
+                # 'predicted_accuracy': pred_accuracy,
+                # 'generated_accuracy': generated_accuracy,
+            }
+            for j in range(self.test_k):
+                lastidx_generation = -1 if len((full_generated[(i*self.test_k) + j]  == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0]) == 0 else (full_generated[(i*self.test_k) + j] == self.ifalphabet.eos_idx).nonzero(as_tuple=True)[0].tolist()[0]
+                re[f'generated_{j}'] = self.decode(full_generated[(i*self.test_k) + j][1:lastidx_generation])
 
-                self.test_data.append(re)
+            self.test_data.append(re)
                 
-            except IndexError:
-                print('Index Error')
-                import pdb; pdb.set_trace()
+            # except IndexError:
+            #     print('Index Error')
+            #     import pdb; pdb.set_trace()
 
 
 
