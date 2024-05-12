@@ -271,7 +271,7 @@ class RebaseT5(pl.LightningModule):
                 'bind': self.dictionary.string(batch['bind'][i].long().tolist()[:batch['bind'][i].tolist().index(2)]),
                 'predicted': self.dictionary.string(nn.functional.softmax(pred[1][i], dim=-1).argmax(-1).tolist()[:lastidx]),
                 'predicted_logits': nn.functional.softmax(pred[1][i], dim=-1)[:lastidx].to(torch.device('cpu')).tolist(),
-                'generated': self.dictionary.string(generated[i][:lastidx_generation]),
+                'generated': self.dictionary.string(generated[i][1:lastidx_generation]),
                 # 'predicted_accuracy': pred_accuracy,
                 # 'generated_accuracy': generated_accuracy,
             }
