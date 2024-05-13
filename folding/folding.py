@@ -252,7 +252,7 @@ class RebaseT5(pl.LightningModule):
 
     def configure_optimizers(self):
         opt = torch.optim.AdamW([
-                #{'params': self.ifmodel.parameters(), 'lr': float(self.hparams.model.lr)/5},  
+                {'params': self.ifmodel.parameters(), 'lr': float(self.hparams.model.lr)/5},  
                 {'params': self.model.decoder.parameters()}], 
             lr=float(self.hparams.model.lr))
         # return opt
@@ -458,8 +458,8 @@ def main(cfg: DictConfig) -> None:
         gradient_clip_val=0.3,
         )
     
-    # try:
-    if True:
+    try:
+    # if True:
         #add in support for test-only mode
 
         if cfg.model.checkpoint_path and cfg.model.test_only: 
@@ -474,23 +474,23 @@ def main(cfg: DictConfig) -> None:
             wandb.run.log_artifact(art)
             print(len(model.test_data))
             return
-    # except:
-    #     print('ready to train!')
-    #     trainer.fit(model)
-    #     model = model.to(torch.device("cuda:0"))
-    #     trainer.test(model, dataloaders=model.val_dataloader())
-    #     with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_val_data.pkl", "wb") as f:
-    #         pickle.dump(model.test_data, f)
-    #     art = wandb.Artifact("test_data", type="dataset")
-    #     art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_val_data.pkl", skip_cache=True)
-    #     wandb.run.log_artifact(art)
-    #     trainer.test(model, dataloaders=model.test_dataloader())
-    #     with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_test_data.pkl", "wb") as f:
-    #         pickle.dump(model.test_data, f)
-    #     art = wandb.Artifact("test_data", type="dataset")
-    #     art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_test_data.pkl", skip_cache=True)
-    #     wandb.run.log_artifact(art)
-    #     return
+    except:
+        print('ready to train!')
+        trainer.fit(model)
+        model = model.to(torch.device("cuda:0"))
+        trainer.test(model, dataloaders=model.val_dataloader())
+        with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_val_data.pkl", "wb") as f:
+            pickle.dump(model.test_data, f)
+        art = wandb.Artifact("test_data", type="dataset")
+        art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_val_data.pkl", skip_cache=True)
+        wandb.run.log_artifact(art)
+        trainer.test(model, dataloaders=model.test_dataloader())
+        with open(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_test_data.pkl", "wb") as f:
+            pickle.dump(model.test_data, f)
+        art = wandb.Artifact("test_data", type="dataset")
+        art.add_file(f"/vast/og2114/output_home/runs/slurm_{os.environ['SLURM_JOB_ID']}/{cfg.model.name}_test_data.pkl", skip_cache=True)
+        wandb.run.log_artifact(art)
+        return
         
 
 if __name__ == '__main__':
