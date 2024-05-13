@@ -328,6 +328,8 @@ class EncoderDataset(Dataset):
                         'bind': batch['bind'][i][int(self.eos):batch['bind_lens'][i]+int(self.eos)],
                         'coords': batch['coords'][i][:batch['lens'][i]],
                         'seq_enc': embeddings[i, :batch['lens'][i], :].to(torch.device('cpu')), 
+                        'coord_pad': batch['coord_pad'][:batch['lens'][i]],
+                        'coord_conf': batch['coord_conf'][:batch['lens'][i]],
                         'cluster': batch['cluster'][i],
                         'id': batch['id'][i],
                     })

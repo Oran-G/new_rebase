@@ -117,8 +117,14 @@ class RebaseT5(pl.LightningModule):
         label[label==self.ifalphabet.padding_idx] = -100
 
         # import pdb; pdb.set_trace()
-        mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
-        pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
+        
+        if self.hparams.esm.esmgrad == True:
+            embedding = self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False)
+            
+        else:
+            embedding = batch['embedding']
+        mask = (embedding[:, :, 0] != self.ifalphabet.padding_idx).int()
+        pred = self.model(encoder_outputs=[embedding], attention_mask=mask, labels=label.long())
 
         
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
@@ -148,7 +154,12 @@ class RebaseT5(pl.LightningModule):
         # import pdb; pdb.set_trace()
         mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
         with torch.no_grad():
-            pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
+            if self.hparams.esm.esmgrad == True:
+                embedding = self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False)
+            else:
+                embedding = batch['embedding']
+            mask = (embedding[:, :, 0] != self.ifalphabet.padding_idx).int()
+            pred = self.model(encoder_outputs=[embedding], attention_mask=mask, labels=label.long())
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         loss=self.loss(torch.transpose(pred[1],1, 2), batch['bind'].long())
         
@@ -340,10 +351,16 @@ class RebaseT5(pl.LightningModule):
         label[label==self.ifalphabet.padding_idx] = -100
         mask = (batch['embedding'][:, :, 0] != self.ifalphabet.padding_idx).int()
         with torch.no_grad():
-            pred = self.model(encoder_outputs=[batch['embedding']], attention_mask=mask, labels=label.long())
-            generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), length_penalty=-1.0)
+            if self.hparams.esm.esmgrad == True:
+                embedding = self.ifmodel.encoder.forward(batch['coords'].to(self.device), batch['coord_pad'].to(self.device), batch['coord_conf'].to(self.device), return_all_hiddens=False)
+                
+            else:
+                embedding = batch['embedding']
+            mask = (embedding[:, :, 0] != self.ifalphabet.padding_idx).int()
+            pred = self.model(encoder_outputs=[embedding], attention_mask=mask, labels=label.long())
+            generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(embedding), length_penalty=-1.0)
             torch.cuda.empty_cache()
-            full_generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(batch['embedding']), do_sample=True, num_return_sequences=self.test_k, exponential_decay_length_penalty=(2, 3))
+            full_generated = self.model.generate(input_ids=None, encoder_outputs=EncoderOutput(embedding), do_sample=True, num_return_sequences=self.test_k, exponential_decay_length_penalty=(2, 3))
         batch['bind'][batch['bind']==-100] = self.ifalphabet.padding_idx
         
         
