@@ -6,10 +6,11 @@
 #SBATCH --gres=gpu:1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=og2114@nyu.edu
-#SBATCH --output=/vast/og2114/output_home/logs/slurm_$SLURM_JOB_ID/job.out
+
 #SBATCH --ntasks-per-node=1
 #SBATCH --job-name='Gradient enabled Folding trainer regular model training'
 #SBATCH --signal=SIGUSR1@90
+#SBATCH --output=/vast/og2114/output_home/logs/slurm_$SLURM_JOB_ID.out
 module purge
 mkdir -p /vast/og2114/output_home/logs/slurm_$SLURM_JOB_ID
 export WANDB_CACHE_DIR=/vast/og2114/output_home/logs/slurm_$SLURM_JOB_ID/wandb_cache
