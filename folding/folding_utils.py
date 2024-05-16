@@ -404,6 +404,9 @@ class EncoderDataset(Dataset):
             'bind_lens': [len(l) for l in select_by_key(batch, 'bind')], 
             'cluster': select_by_key(batch, 'cluster'),
             'embedding': self.collate_tensors(select_by_key(batch, 'seq_enc')), #shape (B, l, emb)
-            'id': select_by_key(batch, 'id')
+            'id': select_by_key(batch, 'id'),
+            'coords': self.collate_tensors(select_by_key(batch, 'coords')),
+            'coord_pad': self.collate_tensors(select_by_key(batch, 'coord_pad')),
+            'coord_conf': self.collate_tensors(select_by_key(batch, 'coord_conf')),
         }
         return post_proccessed
