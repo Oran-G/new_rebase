@@ -1,0 +1,46 @@
+io:
+  input: /vast/og2114/rebase/data/All_Type_II_restriction_enzyme_genes_Protein.fasta
+  output: /vasr/og2114/rebase/data/example.csv
+  fasta: /vast/og2114/rebase/data/mmseq_input.faa
+  cluster: /vast/og2114/rebase/data/cluster-fake.pcsv
+  train: /vast/og2114/rebase/data/train-labeled
+  val: /vast/og2114/rebase/data/val-labeled
+  test: /vast/og2114/rebase/data/test-labeled
+  tmp: /vast/og2114/rebase/data/tmp
+  data: /vast/og2114/rebase/data
+  finput: /vast/og2114/rebase/data/All_Type_II_restriction_enzyme_genes_Protein.fasta
+  final: /vast/og2114/rebase/data/filtered_data.csv
+  temp: /vast/og2114/rebase/data/filtered_data_clust.tsv
+  checkpoints: /vast/og2114/output_home/models
+  wandb_dir: /vast/og2114/output_home/logs
+  dnafinal: /vast/og2114/rebase/data/filtered_data_by_dna.csv
+  fasta_for_esm_embedder: /vast/og2114/rebase/data/fasta_for_esm_embedder.fasta
+  train_embedded: /vast/og2114/rebase/data/folding_train_embedded.pkl
+  val_embedded: /vast/og2114/rebase/data/folding_val_embedded.pkl
+  test_embedded: /vast/og2114/rebase/data/folding_test_embedded.pkl
+  embeddings_store_dir: /vast/og2114/rebase/embeddings
+  dna_train_embedded: /vast/og2114/rebase/data/dna_folding_train_embedded.pkl
+  dna_val_embedded: /vast/og2114/rebase/data/dna_folding_val_embedded.pkl
+  dna_test_embedded: /vast/og2114/rebase/data/dna_folding_test_embedded.pkl
+model:
+  d_ff: 128
+  d_kv: 64
+  d_model: 512
+  batch_size: 128
+  lr: 0.001
+  layers: 3
+  lr_patience: 100
+  scheduler: true
+  gpu: -1
+  max_epochs: -1
+  precision: 32
+  seq_identity: 0.3
+  lrpower: 2
+  dna_clust: false
+  sample_by_cluster: true
+  name: fold
+esm:
+  esm: true
+  esmgrad: false
+  path: esm1_t6_43M_UR50S
+  layers: 6
